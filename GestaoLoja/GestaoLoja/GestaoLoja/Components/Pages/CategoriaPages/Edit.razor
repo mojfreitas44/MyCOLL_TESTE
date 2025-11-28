@@ -1,0 +1,84 @@
+﻿@page "/categorias/edit"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Editar Categoria</PageTitle>
+
+<h1>Editar Categoria</h1>
+<hr />
+
+@if (Categoria is null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm Model="Categoria" OnValidSubmit="AtualizarCategoria" FormName="edit" method="post">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+                <input type="hidden" name="Categoria.Id" value="@Categoria.Id" />
+
+                <div class="mb-3">
+                    <label for="nome" class="form-label">Nome</label>
+                    <InputText id="nome" @bind-Value="Categoria.Nome" class="form-control" />
+                    <ValidationMessage For="() => Categoria.Nome" class="text-danger" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="descricao" class="form-label">Descrição</label>
+                    <InputTextArea id="descricao" @bind-Value="Categoria.Descricao" class="form-control" />
+                    <ValidationMessage For="() => Categoria.Descricao" class="text-danger" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a href="/categorias" class="btn btn-secondary">Cancelar</a>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    public Categoria? Categoria { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Categoria is null)
+        {
+            using var context = DbFactory.CreateDbContext();
+            Categoria = await context.Categorias.FirstOrDefaultAsync(m => m.Id == Id);
+
+            if (Categoria is null)
+            {
+                NavigationManager.NavigateTo("/categorias");
+            }
+        }
+    }
+
+    private async Task AtualizarCategoria()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(Categoria!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+            NavigationManager.NavigateTo("/categorias");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
+        }
+    }
+}

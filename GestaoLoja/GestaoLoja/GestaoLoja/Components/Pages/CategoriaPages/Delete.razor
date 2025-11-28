@@ -1,0 +1,62 @@
+﻿@page "/categorias/delete"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Apagar Categoria</PageTitle>
+
+<h1>Apagar Categoria</h1>
+
+<h3>Tem a certeza que deseja apagar isto?</h3>
+@if (categoria is null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <div>
+        <hr />
+        <dl class="row">
+            <dt class="col-sm-2">Nome</dt>
+            <dd class="col-sm-10">@categoria.Nome</dd>
+            <dt class="col-sm-2">Descrição</dt>
+            <dd class="col-sm-10">@categoria.Descricao</dd>
+        </dl>
+
+        <EditForm Model="categoria" OnValidSubmit="ApagarCategoria" FormName="delete" method="post">
+            <button type="submit" class="btn btn-danger">Apagar</button>
+            <a href="/categorias" class="btn btn-secondary">Cancelar</a>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private Categoria? categoria;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        categoria = await context.Categorias.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (categoria is null)
+        {
+            NavigationManager.NavigateTo("/categorias");
+        }
+    }
+
+    private async Task ApagarCategoria()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Categorias.Remove(categoria!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/categorias");
+    }
+}

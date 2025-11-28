@@ -1,0 +1,68 @@
+﻿@page "/produtos"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Produtos</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Produtos</h1>
+    <div>
+        <a href="produtos/create" class="btn btn-primary">Novo Produto</a>
+        <a href="produtos/pendentes" class="btn btn-warning">Ver Pendentes</a>
+    </div>
+</div>
+
+@if (produtos == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Estado</th>
+                <th>Preço Base</th>
+                <th>Preço Venda</th>
+                <th>Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in produtos)
+            {
+                <tr>
+                    <td>@item.Nome</td>
+                    <td>@item.Categoria?.Nome</td>
+                    <td>
+                        <span class="badge @(item.Estado == "Ativo" ? "bg-success" : "bg-warning text-dark")">
+                            @item.Estado
+                        </span>
+                    </td>
+                    <td>@item.PrecoBase.ToString("C")</td>
+                    <td>@item.PrecoVenda.ToString("C")</td>
+                    <td>@item.Stock</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Produto>? produtos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        produtos = await context.Produtos
+            .Include(p => p.Categoria)
+            .OrderByDescending(p => p.Id)
+            .ToListAsync();
+    }
+}

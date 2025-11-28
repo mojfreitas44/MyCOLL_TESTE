@@ -1,0 +1,107 @@
+﻿@page "/produtos/create"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@* Permite a Admins e Funcionários (e futuramente Fornecedores) criar produtos *@
+@attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Novo Produto</PageTitle>
+
+<h1>Novo Colecionável</h1>
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="Produto" OnValidSubmit="AdicionarProduto" FormName="create_prod" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Nome</label>
+                <InputText @bind-Value="Produto.Nome" class="form-control" />
+                <ValidationMessage For="() => Produto.Nome" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descrição</label>
+                <InputTextArea @bind-Value="Produto.Descricao" class="form-control" rows="3" />
+                <ValidationMessage For="() => Produto.Descricao" class="text-danger" />
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Categoria</label>
+                    <InputSelect @bind-Value="Produto.CategoriaId" class="form-select">
+                        <option value="">-- Selecione --</option>
+                        @foreach (var cat in categorias)
+                        {
+                            <option value="@cat.Id">@cat.Nome</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Condição</label>
+                    <InputSelect @bind-Value="Produto.Condicao" class="form-select">
+                        <option value="Novo">Novo</option>
+                        <option value="Usado">Usado</option>
+                    </InputSelect>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Preço Base (€)</label>
+                    <InputNumber @bind-Value="Produto.PrecoBase" class="form-control" />
+                    <div class="form-text">Valor que o fornecedor pretende receber.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Stock</label>
+                    <InputNumber @bind-Value="Produto.Stock" class="form-control" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-success">Registar Produto</button>
+            <a href="/produtos" class="btn btn-secondary">Cancelar</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public Produto Produto { get; set; } = new();
+
+    private List<Categoria> categorias = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
+    }
+
+    private async Task AdicionarProduto()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        // 1. Obter o ID do utilizador logado para associar como Fornecedor
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        Produto.FornecedorId = userId;
+        Produto.Estado = "Pendente"; // Garante que entra como pendente
+
+        // Inicialmente o preço de venda é igual ao base (será alterado na aprovação)
+        Produto.PrecoVenda = Produto.PrecoBase;
+
+        context.Produtos.Add(Produto);
+        await context.SaveChangesAsync();
+
+        // Redireciona para a lista de produtos ou pendentes dependendo do role
+        NavigationManager.NavigateTo("/produtos/pendentes");
+    }
+}

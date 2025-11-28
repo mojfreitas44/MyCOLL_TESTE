@@ -1,0 +1,59 @@
+﻿@page "/categorias"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Categorias</PageTitle>
+
+<h1>Gestão de Categorias</h1>
+
+<p>
+    <a href="categorias/create" class="btn btn-primary">Nova Categoria</a>
+</p>
+
+@if (categorias == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Descrição</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in categorias)
+            {
+                <tr>
+                    <td>@item.Nome</td>
+                    <td>@item.Descricao</td>
+                    <td>
+                        <a href="categorias/edit?id=@item.Id" class="btn btn-sm btn-outline-secondary">Editar</a>
+                        <a href="categorias/delete?id=@item.Id" class="btn btn-sm btn-outline-danger">Apagar</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private ApplicationDbContext context = default!;
+    private List<Categoria>? categorias;
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+        categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

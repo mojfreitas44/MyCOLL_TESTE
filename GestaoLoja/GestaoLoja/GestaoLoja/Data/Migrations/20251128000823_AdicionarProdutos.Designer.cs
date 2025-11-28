@@ -4,6 +4,7 @@ using GestaoLoja.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestaoLoja.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251128000823_AdicionarProdutos")]
+    partial class AdicionarProdutos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -95,9 +98,6 @@ namespace GestaoLoja.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CategoriaPaiId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Descricao")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -108,8 +108,6 @@ namespace GestaoLoja.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CategoriaPaiId");
 
                     b.ToTable("Categorias");
                 });
@@ -150,9 +148,6 @@ namespace GestaoLoja.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("ParaVenda")
-                        .HasColumnType("bit");
 
                     b.Property<decimal>("PrecoBase")
                         .HasColumnType("decimal(18,2)");
@@ -305,15 +300,6 @@ namespace GestaoLoja.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("GestaoLoja.Entities.Categoria", b =>
-                {
-                    b.HasOne("GestaoLoja.Entities.Categoria", "CategoriaPai")
-                        .WithMany("SubCategorias")
-                        .HasForeignKey("CategoriaPaiId");
-
-                    b.Navigation("CategoriaPai");
-                });
-
             modelBuilder.Entity("GestaoLoja.Entities.Produto", b =>
                 {
                     b.HasOne("GestaoLoja.Entities.Categoria", "Categoria")
@@ -385,8 +371,6 @@ namespace GestaoLoja.Migrations
             modelBuilder.Entity("GestaoLoja.Entities.Categoria", b =>
                 {
                     b.Navigation("Produtos");
-
-                    b.Navigation("SubCategorias");
                 });
 #pragma warning restore 612, 618
         }
