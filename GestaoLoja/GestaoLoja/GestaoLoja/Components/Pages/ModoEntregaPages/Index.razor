@@ -1,0 +1,63 @@
+﻿@page "/modosentrega"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode InteractiveServer
+
+<PageTitle>Modos de Entrega</PageTitle>
+
+<h1>Modos de Disponibilização</h1>
+
+<p>
+    <a href="modosentrega/create" class="btn btn-primary">Novo Modo</a>
+</p>
+
+@if (modos == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else if (modos.Count == 0)
+{
+    <p><em>Não existem modos de entrega configurados.</em></p>
+}
+else
+{
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Descrição</th>
+                <th>Custo</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in modos)
+            {
+                <tr>
+                    <td>@item.Nome</td>
+                    <td>@item.Descricao</td>
+                    <td>@item.Preco.ToString("C")</td>
+                    <td>
+                        <a href="modosentrega/edit?id=@item.Id" class="btn btn-sm btn-outline-secondary">Editar</a>
+                        <a href="modosentrega/delete?id=@item.Id" class="btn btn-sm btn-outline-danger">Apagar</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ModoEntrega>? modos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        modos = await context.ModosEntrega.OrderBy(m => m.Nome).ToListAsync();
+    }
+}

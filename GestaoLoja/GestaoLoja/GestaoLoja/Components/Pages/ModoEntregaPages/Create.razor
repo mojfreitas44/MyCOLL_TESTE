@@ -1,0 +1,57 @@
+﻿@page "/modosentrega/create"
+@using Microsoft.AspNetCore.Authorization
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Novo Modo</PageTitle>
+
+<h1>Criar Modo de Entrega</h1>
+<hr />
+
+<div class="row">
+    <div class="col-md-4">
+        <EditForm Model="Modo" OnValidSubmit="Salvar" FormName="create_modo" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <label class="form-label">Nome</label>
+                <InputText @bind-Value="Modo.Nome" class="form-control" placeholder="Ex: CTT Expresso" />
+                <ValidationMessage For="() => Modo.Nome" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descrição</label>
+                <InputTextArea @bind-Value="Modo.Descricao" class="form-control" />
+                <ValidationMessage For="() => Modo.Descricao" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Custo (€)</label>
+                <InputNumber @bind-Value="Modo.Preco" class="form-control" />
+                <ValidationMessage For="() => Modo.Preco" class="text-danger" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Salvar</button>
+            <a href="modosentrega" class="btn btn-secondary">Cancelar</a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    public ModoEntrega Modo { get; set; } = new();
+
+    private async Task Salvar()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.ModosEntrega.Add(Modo);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("modosentrega");
+    }
+}

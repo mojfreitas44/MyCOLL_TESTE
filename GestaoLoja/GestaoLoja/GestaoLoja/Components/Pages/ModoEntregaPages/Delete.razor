@@ -1,0 +1,56 @@
+﻿@page "/modosentrega/delete"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Apagar Modo</PageTitle>
+
+<h1>Apagar Modo de Entrega</h1>
+<h3 class="text-danger">Tem a certeza?</h3>
+
+@if (Modo is null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <div class="card border-danger mb-3" style="max-width: 500px;">
+        <div class="card-body text-danger">
+            <h5 class="card-title">@Modo.Nome</h5>
+            <p class="card-text">@Modo.Descricao</p>
+            <p class="fw-bold">Custo: @Modo.Preco.ToString("C")</p>
+        </div>
+        <div class="card-footer bg-transparent border-danger">
+            <EditForm Model="Modo" OnValidSubmit="Apagar" FormName="del_modo" method="post">
+                <button type="submit" class="btn btn-danger">Confirmar Eliminação</button>
+                <a href="modosentrega" class="btn btn-secondary">Cancelar</a>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery] public int Id { get; set; }
+    private ModoEntrega? Modo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Modo = await context.ModosEntrega.FindAsync(Id);
+        if (Modo is null) NavigationManager.NavigateTo("modosentrega");
+    }
+
+    private async Task Apagar()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.ModosEntrega.Remove(Modo!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("modosentrega");
+    }
+}
