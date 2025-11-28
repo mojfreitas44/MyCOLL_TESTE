@@ -4,6 +4,7 @@ using GestaoLoja.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestaoLoja.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251128231651_EncomendasUpdate")]
+    partial class EncomendasUpdate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -123,72 +126,6 @@ namespace GestaoLoja.Migrations
                     b.HasIndex("CategoriaPaiId");
 
                     b.ToTable("Categorias");
-                });
-
-            modelBuilder.Entity("GestaoLoja.Entities.Encomenda", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClienteId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("Data")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MetodoEntrega")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MetodoPagamento")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MoradaEnvio")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("ValorTotal")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClienteId");
-
-                    b.ToTable("Encomendas");
-                });
-
-            modelBuilder.Entity("GestaoLoja.Entities.EncomendaItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("EncomendaId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("PrecoUnitario")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<int>("ProdutoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantidade")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EncomendaId");
-
-                    b.HasIndex("ProdutoId");
-
-                    b.ToTable("EncomendaItem");
                 });
 
             modelBuilder.Entity("GestaoLoja.Entities.ModoEntrega", b =>
@@ -413,34 +350,6 @@ namespace GestaoLoja.Migrations
                     b.Navigation("CategoriaPai");
                 });
 
-            modelBuilder.Entity("GestaoLoja.Entities.Encomenda", b =>
-                {
-                    b.HasOne("GestaoLoja.Data.ApplicationUser", "Cliente")
-                        .WithMany()
-                        .HasForeignKey("ClienteId");
-
-                    b.Navigation("Cliente");
-                });
-
-            modelBuilder.Entity("GestaoLoja.Entities.EncomendaItem", b =>
-                {
-                    b.HasOne("GestaoLoja.Entities.Encomenda", "Encomenda")
-                        .WithMany("Itens")
-                        .HasForeignKey("EncomendaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("GestaoLoja.Entities.Produto", "Produto")
-                        .WithMany()
-                        .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Encomenda");
-
-                    b.Navigation("Produto");
-                });
-
             modelBuilder.Entity("GestaoLoja.Entities.Produto", b =>
                 {
                     b.HasOne("GestaoLoja.Entities.Categoria", "Categoria")
@@ -514,11 +423,6 @@ namespace GestaoLoja.Migrations
                     b.Navigation("Produtos");
 
                     b.Navigation("SubCategorias");
-                });
-
-            modelBuilder.Entity("GestaoLoja.Entities.Encomenda", b =>
-                {
-                    b.Navigation("Itens");
                 });
 #pragma warning restore 612, 618
         }

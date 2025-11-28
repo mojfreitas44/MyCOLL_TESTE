@@ -57,13 +57,15 @@ using (var scope = app.Services.CreateScope())
         var db = services.GetRequiredService<ApplicationDbContext>();
         await db.Database.MigrateAsync();
 
-        // 2. Criar Categorias
-        await Inicializacao.SeedCategoriasPadrao(db);
+        // 2. Testar e popular dados de teste
+        //await Inicializacao.SeedCategoriasPadrao(db);
+        //await Inicializacao.SeedEncomendaTeste(db, userManager);
 
         // 3. Criar Roles e Admin
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         await Inicializacao.CriaDadosIniciais(userManager, roleManager);
+        
     }
     catch (Exception ex)
     {

@@ -11,6 +11,8 @@ namespace GestaoLoja.Data
 
         public DbSet<ModoEntrega> ModosEntrega { get; set; }
 
+        public DbSet<Encomenda> Encomendas { get; set; }
+
         // Podes adicionar aqui Encomendas, Carrinho, etc. mais tarde, tal como no WebCar
 
         protected override void OnModelCreating(ModelBuilder builder)

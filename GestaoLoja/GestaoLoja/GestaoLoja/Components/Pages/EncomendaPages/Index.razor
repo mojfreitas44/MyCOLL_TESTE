@@ -1,0 +1,110 @@
+﻿@page "/encomendas"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode InteractiveServer
+
+<PageTitle>Gestão de Encomendas</PageTitle>
+
+<h1>Encomendas</h1>
+
+@if (encomendas == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else if (!encomendas.Any())
+{
+    <div class="alert alert-info">Não há encomendas registadas.</div>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var enc in encomendas)
+            {
+                <tr>
+                    <td>@enc.Id</td>
+                    <td>@enc.Data.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        @(enc.Cliente?.Nome ?? enc.Cliente?.UserName ?? "Anónimo")
+                    </td>
+                    <td>@enc.ValorTotal.ToString("C")</td>
+                    <td>
+                        <span class="badge @GetBadge(enc.Estado)">@enc.Estado</span>
+                    </td>
+                    <td>
+                        <a href="encomendas/details?id=@enc.Id" class="btn btn-sm btn-outline-info">
+                            Detalhes
+                        </a>
+
+                        @if (enc.Estado == "Pendente")
+                        {
+                            <button class="btn btn-sm btn-success ms-1" @onclick='() => MudarEstado(enc, "Pago")'>Marcar Pago</button>
+                        }
+                        else if (enc.Estado == "Pago")
+                        {
+                            <button class="btn btn-sm btn-warning ms-1" @onclick='() => MudarEstado(enc, "Enviado")'>Enviar</button>
+                        }
+                        else if (enc.Estado == "Enviado")
+                        {
+                            <button class="btn btn-sm btn-secondary ms-1" @onclick='() => MudarEstado(enc, "Concluido")'>Concluir</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Encomenda>? encomendas;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarDados();
+    }
+
+    private async Task CarregarDados()
+    {
+        using var context = DbFactory.CreateDbContext();
+        encomendas = await context.Encomendas
+            .Include(e => e.Cliente)
+            .OrderByDescending(e => e.Data)
+            .ToListAsync();
+    }
+
+    private async Task MudarEstado(Encomenda enc, string novoEstado)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var encomendaDb = await context.Encomendas.FindAsync(enc.Id);
+        if (encomendaDb != null)
+        {
+            encomendaDb.Estado = novoEstado;
+            await context.SaveChangesAsync();
+            await CarregarDados();
+        }
+    }
+
+    private string GetBadge(string estado) => estado switch
+    {
+        "Pendente" => "bg-danger",
+        "Pago" => "bg-warning text-dark",
+        "Enviado" => "bg-primary",
+        "Concluido" => "bg-success",
+        _ => "bg-secondary"
+    };
+}

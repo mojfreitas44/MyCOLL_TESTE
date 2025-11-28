@@ -1,0 +1,97 @@
+﻿@page "/encomendas/details"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Detalhes da Encomenda</PageTitle>
+
+@if (encomenda is null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Encomenda #@encomenda.Id</h1>
+        <a href="encomendas" class="btn btn-outline-secondary">Voltar</a>
+    </div>
+
+    <div class="row">
+        @* Dados do Cliente *@
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header fw-bold">Informação de Envio</div>
+                <div class="card-body">
+                    <p><strong>Cliente:</strong> @(encomenda.Cliente?.Nome ?? encomenda.Cliente?.Email)</p>
+                    <p><strong>Email:</strong> @encomenda.Cliente?.Email</p>
+                    <p><strong>Morada:</strong> @(encomenda.MoradaEnvio ?? "N/A")</p>
+                    <p><strong>Método Entrega:</strong> @encomenda.MetodoEntrega</p>
+                </div>
+            </div>
+        </div>
+
+        @* Resumo Financeiro *@
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header fw-bold">Estado e Pagamento</div>
+                <div class="card-body">
+                    <p><strong>Data:</strong> @encomenda.Data</p>
+                    <p><strong>Estado Atual:</strong> <span class="badge bg-secondary">@encomenda.Estado</span></p>
+                    <p><strong>Método Pagamento:</strong> @encomenda.MetodoPagamento</p>
+                    <h4 class="mt-3">Total: @encomenda.ValorTotal.ToString("C")</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Lista de Produtos *@
+    <h3>Itens</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Preço Unit.</th>
+                <th>Qtd</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in encomenda.Itens)
+            {
+                <tr>
+                    <td>@item.Produto?.Nome</td>
+                    <td>@item.PrecoUnitario.ToString("C")</td>
+                    <td>@item.Quantidade</td>
+                    <td>@((item.PrecoUnitario * item.Quantidade).ToString("C"))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    private Encomenda? encomenda;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        encomenda = await context.Encomendas
+            .Include(e => e.Cliente)
+            .Include(e => e.Itens)
+            .ThenInclude(i => i.Produto)
+            .FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (encomenda is null)
+        {
+            NavigationManager.NavigateTo("encomendas");
+        }
+    }
+}
