@@ -3,61 +3,64 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using System.Security.Claims
+@using System.IO
 
-@* Permite a Admins e Funcionários (e futuramente Fornecedores) criar produtos *@
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Novo Produto</PageTitle>
+<PageTitle>Novo Colecionável</PageTitle>
 
-<h1>Novo Colecionável</h1>
+<h1>Registar Novo Colecionável</h1>
 <hr />
 
 <div class="row">
     <div class="col-md-6">
-        <EditForm Model="Produto" OnValidSubmit="AdicionarProduto" FormName="create_prod" method="post">
+        @* O enctype é vital para o upload de ficheiros *@
+        <EditForm Model="Produto" OnValidSubmit="SalvarProduto" FormName="create_prod" method="post" enctype="multipart/form-data">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
 
+            @if (!string.IsNullOrEmpty(erroImagem))
+            {
+                <div class="alert alert-danger">@erroImagem</div>
+            }
+
             <div class="mb-3">
-                <label class="form-label">Nome</label>
+                <label class="form-label">Nome do Artigo</label>
                 <InputText @bind-Value="Produto.Nome" class="form-control" />
-                <ValidationMessage For="() => Produto.Nome" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Categoria</label>
+                <InputSelect @bind-Value="Produto.CategoriaId" class="form-select">
+                    <option value="">-- Selecione --</option>
+                    @foreach (var cat in categorias)
+                    {
+                        <option value="@cat.Id">@cat.Nome</option>
+                    }
+                </InputSelect>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Descrição</label>
                 <InputTextArea @bind-Value="Produto.Descricao" class="form-control" rows="3" />
-                <ValidationMessage For="() => Produto.Descricao" class="text-danger" />
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Categoria</label>
-                    <InputSelect @bind-Value="Produto.CategoriaId" class="form-select">
-                        <option value="">-- Selecione --</option>
-                        @foreach (var cat in categorias)
-                        {
-                            <option value="@cat.Id">@cat.Nome</option>
-                        }
-                    </InputSelect>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Condição</label>
-                    <InputSelect @bind-Value="Produto.Condicao" class="form-select">
-                        <option value="Novo">Novo</option>
-                        <option value="Usado">Usado</option>
-                    </InputSelect>
-                </div>
+            @* Campo de Upload de Imagem *@
+            <div class="mb-3">
+                <label class="form-label">Imagem do Artigo</label>
+                <InputFile OnChange="CarregarImagem" class="form-control" accept=".png,.jpg,.jpeg" />
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Preço Base (€)</label>
                     <InputNumber @bind-Value="Produto.PrecoBase" class="form-control" />
-                    <div class="form-text">Valor que o fornecedor pretende receber.</div>
+                    <div class="form-text">Valor pretendido pelo fornecedor.</div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Stock</label>
@@ -65,8 +68,13 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-success">Registar Produto</button>
-            <a href="/produtos" class="btn btn-secondary">Cancelar</a>
+            <div class="form-check mb-3">
+                <InputCheckbox @bind-Value="Produto.ParaVenda" class="form-check-input" id="paraVenda" />
+                <label class="form-check-label" for="paraVenda">Disponível para venda? (Se não, é apenas coleção)</label>
+            </div>
+
+            <button type="submit" class="btn btn-success">Submeter</button>
+            <a href="produtos" class="btn btn-secondary">Cancelar</a>
         </EditForm>
     </div>
 </div>
@@ -76,6 +84,7 @@
     public Produto Produto { get; set; } = new();
 
     private List<Categoria> categorias = new();
+    private string? erroImagem;
 
     protected override async Task OnInitializedAsync()
     {
@@ -83,25 +92,44 @@
         categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
     }
 
-    private async Task AdicionarProduto()
+    private async Task CarregarImagem(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var ficheiro = e.File;
+            if (ficheiro != null)
+            {
+                // Limite de 2MB
+                var maxTamanho = 2 * 1024 * 1024;
+                using var stream = ficheiro.OpenReadStream(maxTamanho);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                Produto.Imagem = ms.ToArray();
+                Produto.ImagemUrl = ficheiro.Name; // Guardamos o nome para referência
+            }
+        }
+        catch (Exception ex)
+        {
+            erroImagem = "Erro ao carregar imagem: " + ex.Message;
+        }
+    }
+
+    private async Task SalvarProduto()
     {
         using var context = DbFactory.CreateDbContext();
 
-        // 1. Obter o ID do utilizador logado para associar como Fornecedor
+        // Associa ao utilizador atual
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         Produto.FornecedorId = userId;
-        Produto.Estado = "Pendente"; // Garante que entra como pendente
-
-        // Inicialmente o preço de venda é igual ao base (será alterado na aprovação)
+        Produto.Estado = "Pendente"; // Regra de negócio
         Produto.PrecoVenda = Produto.PrecoBase;
 
         context.Produtos.Add(Produto);
         await context.SaveChangesAsync();
 
-        // Redireciona para a lista de produtos ou pendentes dependendo do role
-        NavigationManager.NavigateTo("/produtos/pendentes");
+        NavigationManager.NavigateTo("produtos/pendentes");
     }
 }

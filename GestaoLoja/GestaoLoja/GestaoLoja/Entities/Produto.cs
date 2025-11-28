@@ -8,20 +8,19 @@ namespace GestaoLoja.Entities
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "O nome é obrigatório.")]
-        [StringLength(100)]
+        [Required]
         public string Nome { get; set; } = string.Empty;
 
         [Required]
         public string Descricao { get; set; } = string.Empty;
 
-        // --- NOVO: Imagem na Base de Dados ---
+        // --- REQUISITO: Imagem na BD ---
         public byte[]? Imagem { get; set; }
-        public string? ImagemUrl { get; set; } // Mantém para guardar o nome do ficheiro ou tipo MIME (ex: "image/png")
+        public string? ImagemUrl { get; set; } // Opcional, se quiseres manter compatibilidade
 
-        // --- NOVO: Distinção Listagem vs Venda ---
-        [Display(Name = "Disponível para Venda")]
-        public bool ParaVenda { get; set; } = true; // Se false, é apenas para "Listagem" (Coleção)
+        // --- REQUISITO SECÇÃO 7: Listagem vs Venda ---
+        [Display(Name = "Disponível para Venda?")]
+        public bool ParaVenda { get; set; } = true; // Se false, aparece apenas como "Coleção"
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal PrecoBase { get; set; }
@@ -33,6 +32,7 @@ namespace GestaoLoja.Entities
         public string Condicao { get; set; } = "Usado";
         public string Estado { get; set; } = "Pendente";
 
+        // Chaves Estrangeiras
         public int CategoriaId { get; set; }
         public virtual Categoria? Categoria { get; set; }
 

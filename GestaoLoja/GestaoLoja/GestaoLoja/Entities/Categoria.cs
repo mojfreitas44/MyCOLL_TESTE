@@ -7,23 +7,20 @@ namespace GestaoLoja.Entities
     {
         public int Id { get; set; }
 
-        [Required(ErrorMessage = "O nome da categoria é obrigatório.")]
-        [StringLength(50)]
+        [Required(ErrorMessage = "O nome é obrigatório.")]
         public string Nome { get; set; } = string.Empty;
 
-        [StringLength(200)]
         public string? Descricao { get; set; }
 
-        // --- NOVO: Suporte para Hierarquia ---
+        // --- REQUISITO SECÇÃO 7: Hierarquia para os "Frisos" ---
+        // Permite: Moedas (Pai) -> Portugal (Filho) -> D.Dinis (Neto)
+        [Display(Name = "Categoria Pai")]
         public int? CategoriaPaiId { get; set; }
 
         [ForeignKey("CategoriaPaiId")]
         public virtual Categoria? CategoriaPai { get; set; }
 
-        // Subcategorias
         public virtual ICollection<Categoria> SubCategorias { get; set; } = new List<Categoria>();
-        // --------------------------------------------------------------
-
         public virtual ICollection<Produto> Produtos { get; set; } = new List<Produto>();
     }
 }

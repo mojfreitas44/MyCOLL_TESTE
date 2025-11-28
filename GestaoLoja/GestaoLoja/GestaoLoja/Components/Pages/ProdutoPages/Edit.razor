@@ -1,0 +1,209 @@
+﻿@page "/produtos/edit"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+@using System.IO
+@using System.Security.Claims
+
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Editar Produto</PageTitle>
+
+<h1>Editar Produto</h1>
+<hr />
+
+@if (Produto is null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <EditForm Model="Produto" OnValidSubmit="AtualizarProduto" FormName="edit_prod" method="post" enctype="multipart/form-data">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <input type="hidden" name="Produto.Id" value="@Produto.Id" />
+
+                @* --- CORREÇÃO 1: Adicionado Context="fornecedorContext" --- *@
+                <AuthorizeView Roles="Fornecedor" Context="fornecedorContext">
+                    <div class="alert alert-warning">
+                        <strong>Nota:</strong> Ao alterar os dados deste produto, ele voltará automaticamente para o estado
+                        <span class="badge bg-warning text-dark">Pendente</span> e terá de ser reavaliado pela loja.
+                    </div>
+                </AuthorizeView>
+
+                @if (!string.IsNullOrEmpty(erroImagem))
+                {
+                    <div class="alert alert-danger">@erroImagem</div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Imagem Atual</label>
+                    @if (Produto.Imagem != null)
+                    {
+                        <div class="mb-2">
+                            <img src="data:image;base64,@Convert.ToBase64String(Produto.Imagem)" style="max-width: 200px; border-radius: 5px;" />
+                        </div>
+                    }
+                    <InputFile OnChange="CarregarImagem" class="form-control" accept=".png,.jpg,.jpeg" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nome</label>
+                    <InputText @bind-Value="Produto.Nome" class="form-control" />
+                    <ValidationMessage For="() => Produto.Nome" class="text-danger" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Categoria</label>
+                    <InputSelect @bind-Value="Produto.CategoriaId" class="form-select">
+                        @foreach (var cat in categorias)
+                        {
+                            <option value="@cat.Id">@cat.Nome</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <InputTextArea @bind-Value="Produto.Descricao" class="form-control" rows="3" />
+                    <ValidationMessage For="() => Produto.Descricao" class="text-danger" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Preço Base (€)</label>
+                        <InputNumber @bind-Value="Produto.PrecoBase" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Stock</label>
+                        <InputNumber @bind-Value="Produto.Stock" class="form-control" />
+                    </div>
+                </div>
+
+                @* --- CORREÇÃO 2: Mantém-se o Context="authContext" --- *@
+                <AuthorizeView Roles="Administrador,Funcionario" Context="authContext">
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Área de Gestão</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Preço de Venda (Final)</label>
+                                <InputNumber @bind-Value="Produto.PrecoVenda" class="form-control" />
+                                <div class="form-text">Ao alterar o preço base, pode querer ajustar este valor manualmente.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <InputSelect @bind-Value="Produto.Estado" class="form-select">
+                                    <option value="Pendente">Pendente (Aguarda Aprovação)</option>
+                                    <option value="Ativo">Ativo (À Venda)</option>
+                                    <option value="Inativo">Inativo (Suspenso)</option>
+                                    <option value="Rejeitado">Rejeitado</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+                    </div>
+                </AuthorizeView>
+
+                <div class="mb-3 form-check">
+                    <InputCheckbox @bind-Value="Produto.ParaVenda" class="form-check-input" id="paraVenda" />
+                    <label class="form-check-label" for="paraVenda">Disponível para Venda? (Se desligado, serve apenas para exibir na coleção)</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Guardar Alterações</button>
+                <a href="produtos" class="btn btn-secondary">Cancelar</a>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    public Produto? Produto { get; set; }
+
+    private List<Categoria> categorias = new();
+    private string? erroImagem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
+
+        if (Produto is null)
+        {
+            Produto = await context.Produtos.FirstOrDefaultAsync(p => p.Id == Id);
+
+            if (Produto is null)
+            {
+                NavigationManager.NavigateTo("produtos");
+            }
+        }
+    }
+
+    private async Task CarregarImagem(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var ficheiro = e.File;
+            if (ficheiro != null)
+            {
+                var maxTamanho = 5 * 1024 * 1024; // 5MB
+                using var stream = ficheiro.OpenReadStream(maxTamanho);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                Produto!.Imagem = ms.ToArray();
+                Produto.ImagemUrl = ficheiro.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            erroImagem = "Erro na imagem: " + ex.Message;
+        }
+    }
+
+    private async Task AtualizarProduto()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        // 1. Verificar quem está a editar
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        bool isAdminOrStaff = user.IsInRole("Administrador") || user.IsInRole("Funcionario");
+
+        // 2. Aplicar Regra de Negócio: Se for Fornecedor, o produto volta para Pendente
+        if (!isAdminOrStaff)
+        {
+            Produto!.Estado = "Pendente";
+        }
+
+        // 3. Guardar
+        context.Attach(Produto!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+            NavigationManager.NavigateTo("produtos");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!context.Produtos.Any(e => e.Id == Produto!.Id))
+            {
+                NavigationManager.NavigateTo("produtos");
+            }
+            else
+            {
+                throw;
+            }
+        }
+    }
+}

@@ -3,51 +3,127 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using System.Security.Claims
 
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
 
-<PageTitle>Produtos</PageTitle>
+<PageTitle>Gestão de Produtos</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Produtos</h1>
+    <h1>Gestão de Produtos</h1>
     <div>
-        <a href="produtos/create" class="btn btn-primary">Novo Produto</a>
-        <a href="produtos/pendentes" class="btn btn-warning">Ver Pendentes</a>
+        <a href="produtos/create" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Novo Colecionável
+        </a>
+        @* Atalho rápido para aprovações se for Admin *@
+        <AuthorizeView Roles="Administrador,Funcionario">
+            <a href="produtos/pendentes" class="btn btn-warning ms-2">
+                <i class="bi bi-exclamation-circle"></i> Aprovar Pendentes
+            </a>
+        </AuthorizeView>
+    </div>
+</div>
+
+@* --- BARRA DE FILTROS --- *@
+<div class="card p-3 mb-4 bg-light">
+    <div class="row g-3 align-items-center">
+        <div class="col-auto">
+            <label class="col-form-label fw-bold">Filtrar por Estado:</label>
+        </div>
+        <div class="col-auto">
+            <select class="form-select" @onchange="FiltrarPorEstado">
+                <option value="Todos">Todos</option>
+                <option value="Ativo" selected>Ativos (Na Loja)</option>
+                <option value="Pendente">Pendentes</option>
+                <option value="Inativo">Inativos (Escondidos)</option>
+                <option value="Rejeitado">Rejeitados</option>
+            </select>
+        </div>
+        <div class="col-auto ms-auto">
+            <span class="text-muted">A mostrar <strong>@(produtos?.Count ?? 0)</strong> registos.</span>
+        </div>
     </div>
 </div>
 
 @if (produtos == null)
 {
-    <p><em>A carregar...</em></p>
+    <p><em>A carregar produtos...</em></p>
+}
+else if (produtos.Count == 0)
+{
+    <div class="alert alert-warning">Não foram encontrados produtos com este filtro.</div>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
+    <table class="table table-hover align-middle">
+        <thead class="table-dark">
             <tr>
+                <th>Imagem</th>
                 <th>Nome</th>
                 <th>Categoria</th>
-                <th>Estado</th>
-                <th>Preço Base</th>
                 <th>Preço Venda</th>
-                <th>Stock</th>
+                <th>Estado</th>
+                <th>Modo</th>
+                <th class="text-end">Ações</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var item in produtos)
+            @foreach (var p in produtos)
             {
                 <tr>
-                    <td>@item.Nome</td>
-                    <td>@item.Categoria?.Nome</td>
                     <td>
-                        <span class="badge @(item.Estado == "Ativo" ? "bg-success" : "bg-warning text-dark")">
-                            @item.Estado
-                        </span>
+                        @if (p.Imagem != null)
+                        {
+                            <img src="data:image;base64,@Convert.ToBase64String(p.Imagem)"
+                                 class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <span class="text-muted small">Sem foto</span>
+                        }
                     </td>
-                    <td>@item.PrecoBase.ToString("C")</td>
-                    <td>@item.PrecoVenda.ToString("C")</td>
-                    <td>@item.Stock</td>
+                    <td>
+                        <strong>@p.Nome</strong>
+                        @if (ehFornecedor && p.FornecedorId == userId)
+                        {
+                            <span class="badge bg-info text-dark ms-1">Meu</span>
+                        }
+                    </td>
+                    <td>@p.Categoria?.Nome</td>
+                    <td>
+                        @if (p.ParaVenda)
+                        {
+                            <span>@p.PrecoVenda.ToString("C")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted fst-italic">N/A</span>
+                        }
+                    </td>
+                    <td>
+                        <span class="badge @GetBadgeClass(p.Estado)">@p.Estado</span>
+                    </td>
+                    <td>
+                        @if (p.ParaVenda)
+                        {
+                            <span class="badge bg-success"><i class="bi bi-cart"></i> Venda</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary"><i class="bi bi-collection"></i> Coleção</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a href="produtos/edit?id=@p.Id" class="btn btn-sm btn-outline-primary">
+                            Editar
+                        </a>
+                        <a href="produtos/delete?id=@p.Id" class="btn btn-sm btn-outline-danger ms-1">
+                            Apagar
+                        </a>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -56,13 +132,60 @@ else
 
 @code {
     private List<Produto>? produtos;
+    private string estadoFiltro = "Ativo"; // Começa a mostrar só os ativos por defeito
+    private string? userId;
+    private bool ehFornecedor;
 
     protected override async Task OnInitializedAsync()
     {
-        using var context = DbFactory.CreateDbContext();
-        produtos = await context.Produtos
-            .Include(p => p.Categoria)
-            .OrderByDescending(p => p.Id)
-            .ToListAsync();
+        // Obter ID do utilizador atual para saber quais são os "Meus"
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        ehFornecedor = user.IsInRole("Fornecedor");
+
+        await CarregarProdutos();
     }
+
+    private async Task FiltrarPorEstado(ChangeEventArgs e)
+    {
+        estadoFiltro = e.Value?.ToString() ?? "Todos";
+        await CarregarProdutos();
+    }
+
+    private async Task CarregarProdutos()
+    {
+        using var context = DbFactory.CreateDbContext();
+        var query = context.Produtos
+            .Include(p => p.Categoria)
+            .AsQueryable();
+
+        // 1. Se não for Admin/Staff, só vê os seus próprios produtos!
+        // (Segurança básica: um fornecedor não deve gerir produtos de outros)
+        // Nota: Se quiseres que todos vejam tudo, remove este 'if'.
+        // Mas para "Gestão", o Admin vê tudo, o Fornecedor vê o seu stock.
+        /* var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.IsInRole("Fornecedor") && !authState.User.IsInRole("Administrador") && !authState.User.IsInRole("Funcionario"))
+        {
+            query = query.Where(p => p.FornecedorId == userId);
+        }
+        */
+
+        // 2. Aplicar Filtro de Estado
+        if (estadoFiltro != "Todos")
+        {
+            query = query.Where(p => p.Estado == estadoFiltro);
+        }
+
+        produtos = await query.OrderByDescending(p => p.Id).ToListAsync();
+    }
+
+    private string GetBadgeClass(string estado) => estado switch
+    {
+        "Ativo" => "bg-success",
+        "Pendente" => "bg-warning text-dark",
+        "Inativo" => "bg-secondary",
+        "Rejeitado" => "bg-danger",
+        _ => "bg-light text-dark"
+    };
 }

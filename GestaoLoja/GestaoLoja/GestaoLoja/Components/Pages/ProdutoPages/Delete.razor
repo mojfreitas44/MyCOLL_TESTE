@@ -1,0 +1,84 @@
+﻿@page "/produtos/delete"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Apagar Produto</PageTitle>
+
+<h1>Apagar Produto</h1>
+<h3 class="text-danger">Tem a certeza que deseja eliminar este colecionável?</h3>
+
+@if (produto is null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <div class="card mt-4" style="max-width: 600px;">
+        <div class="row g-0">
+            <div class="col-md-4 d-flex align-items-center justify-content-center bg-light">
+                @if (produto.Imagem != null)
+                {
+                    <img src="data:image;base64,@Convert.ToBase64String(produto.Imagem)" class="img-fluid rounded-start" style="max-height: 150px;" />
+                }
+                else
+                {
+                    <span class="text-muted">Sem imagem</span>
+                }
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <h5 class="card-title">@produto.Nome</h5>
+                    <p class="card-text">@produto.Descricao</p>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Preço Venda</dt>
+                        <dd class="col-sm-8">@produto.PrecoVenda.ToString("C")</dd>
+                        <dt class="col-sm-4">Estado</dt>
+                        <dd class="col-sm-8">@produto.Estado</dd>
+                        <dt class="col-sm-4">Stock</dt>
+                        <dd class="col-sm-8">@produto.Stock</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer text-end">
+            <EditForm Model="produto" OnValidSubmit="ApagarProduto" FormName="delete_prod" method="post">
+                <button type="submit" class="btn btn-danger">Confirmar Eliminação</button>
+                <a href="produtos" class="btn btn-secondary">Cancelar</a>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private Produto? produto;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        produto = await context.Produtos.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (produto is null)
+        {
+            NavigationManager.NavigateTo("produtos");
+        }
+    }
+
+    private async Task ApagarProduto()
+    {
+        using var context = DbFactory.CreateDbContext();
+        // É preciso anexar ou procurar novamente para remover
+        context.Produtos.Remove(produto!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("produtos");
+    }
+}

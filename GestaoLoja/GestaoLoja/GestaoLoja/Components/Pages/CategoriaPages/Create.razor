@@ -3,6 +3,8 @@
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
 
+@* ATENÇÃO: O rendermode é essencial para o formulário funcionar sem erros de acesso *@
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
@@ -14,7 +16,7 @@
 
 <div class="row">
     <div class="col-md-4">
-        <EditForm Model="Categoria" OnValidSubmit="AdicionarCategoria" FormName="create" method="post">
+        <EditForm Model="Categoria" OnValidSubmit="AdicionarCategoria" FormName="create_cat" method="post">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
 
@@ -30,8 +32,10 @@
                 <ValidationMessage For="() => Categoria.Descricao" class="text-danger" />
             </div>
 
+            @* Se já tiveres implementado a hierarquia (CategoriaPai), podes adicionar aqui o select, senão deixa para depois *@
+
             <button type="submit" class="btn btn-primary">Salvar</button>
-            <a href="/categorias" class="btn btn-secondary">Cancelar</a>
+            <a href="categorias" class="btn btn-secondary">Cancelar</a>
         </EditForm>
     </div>
 </div>
@@ -45,6 +49,6 @@
         using var context = DbFactory.CreateDbContext();
         context.Categorias.Add(Categoria);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/categorias");
+        NavigationManager.NavigateTo("categorias");
     }
 }

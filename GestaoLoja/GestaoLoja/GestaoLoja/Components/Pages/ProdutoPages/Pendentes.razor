@@ -4,31 +4,29 @@
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
 
-@* Apenas Staff pode aprovar *@
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
-@rendermode InteractiveServer
 
-<PageTitle>Aprovação de Produtos</PageTitle>
+<PageTitle>Produtos Pendentes</PageTitle>
 
-<h1>Produtos Pendentes</h1>
+<h1>Aprovação de Colecionáveis</h1>
 
-@if (produtosPendentes is null)
+@if (pendentes == null)
 {
     <p><em>A carregar...</em></p>
 }
-else if (produtosPendentes.Count == 0)
+else if (!pendentes.Any())
 {
-    <div class="alert alert-info">Não existem produtos pendentes para aprovação.</div>
+    <div class="alert alert-info">Nada para aprovar.</div>
 }
 else
 {
-    <table class="table align-middle">
+    <table class="table align-middle table-hover">
         <thead>
             <tr>
-                <th>Produto</th>
-                <th>Categoria</th>
-                <th>Fornecedor</th>
+                <th>Imagem</th>
+                <th>Artigo</th>
                 <th>Preço Base</th>
                 <th>Margem (%)</th>
                 <th>Preço Final</th>
@@ -36,31 +34,33 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var p in produtosPendentes)
+            @foreach (var p in pendentes)
             {
-                // Variável local para cálculo dinâmico na interface
-                var margem = margensTemporarias.ContainsKey(p.Id) ? margensTemporarias[p.Id] : 0;
+                // Lógica local para a margem
+                var margem = margens.ContainsKey(p.Id) ? margens[p.Id] : 20; // 20% default
                 var precoFinal = p.PrecoBase + (p.PrecoBase * (margem / 100));
 
                 <tr>
                     <td>
-                        <strong>@p.Nome</strong><br />
-                        <small class="text-muted">@p.Condicao</small>
+                        @if (p.Imagem != null)
+                        {
+                            <img src="data:image;base64,@Convert.ToBase64String(p.Imagem)" width="50" class="img-thumbnail" />
+                        }
                     </td>
-                    <td>@(p.Categoria?.Nome ?? "-")</td>
-                    <td><small>@(p.Fornecedor?.UserName ?? "Desconhecido")</small></td>
+                    <td>
+                        <strong>@p.Nome</strong><br />
+                        <small class="text-muted">@p.Categoria?.Nome</small>
+                    </td>
                     <td>@p.PrecoBase.ToString("C")</td>
-                    <td style="width: 150px;">
-                        <input type="number" class="form-control"
+                    <td style="width:120px">
+                        <input type="number" class="form-control form-control-sm"
                                value="@margem"
                                @onchange="@(e => AtualizarMargem(p.Id, e.Value))" />
                     </td>
-                    <td class="fw-bold text-success">
-                        @precoFinal.ToString("C")
-                    </td>
+                    <td class="fw-bold text-success">@precoFinal.ToString("C")</td>
                     <td>
-                        <button class="btn btn-sm btn-success" @onclick="() => AprovarProduto(p)">Aprovar</button>
-                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RejeitarProduto(p)">Rejeitar</button>
+                        <button class="btn btn-sm btn-success" @onclick="() => Aprovar(p)">Aprovar</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Rejeitar(p)">Recusar</button>
                     </td>
                 </tr>
             }
@@ -69,67 +69,63 @@ else
 }
 
 @code {
-    private List<Produto>? produtosPendentes;
-    private Dictionary<int, decimal> margensTemporarias = new(); // Guarda a margem que o admin está a digitar
+    private List<Produto>? pendentes;
+    private Dictionary<int, decimal> margens = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await CarregarPendentes();
+        await CarregarDados();
     }
 
-    private async Task CarregarPendentes()
+    private async Task CarregarDados()
     {
         using var context = DbFactory.CreateDbContext();
-        produtosPendentes = await context.Produtos
+        pendentes = await context.Produtos
             .Include(p => p.Categoria)
             .Include(p => p.Fornecedor)
             .Where(p => p.Estado == "Pendente")
             .ToListAsync();
 
-        // Inicializa as margens a 0 (ou outro valor padrão, ex: 20%)
-        foreach (var p in produtosPendentes)
+        // Inicializa dicionário de margens
+        foreach (var p in pendentes)
         {
-            if (!margensTemporarias.ContainsKey(p.Id))
-                margensTemporarias[p.Id] = 20; // Margem padrão de 20%
+            if (!margens.ContainsKey(p.Id)) margens[p.Id] = 20;
         }
     }
 
-    private void AtualizarMargem(int id, object? valor)
+    private void AtualizarMargem(int id, object? val)
     {
-        if (decimal.TryParse(valor?.ToString(), out decimal novaMargem))
+        if (decimal.TryParse(val?.ToString(), out decimal m))
         {
-            margensTemporarias[id] = novaMargem;
+            margens[id] = m;
         }
     }
 
-    private async Task AprovarProduto(Produto p)
-    {
-        using var context = DbFactory.CreateDbContext();
-        var produtoDb = await context.Produtos.FindAsync(p.Id);
-
-        if (produtoDb != null)
-        {
-            var margem = margensTemporarias[p.Id];
-
-            // Aplica a lógica de negócio: Preço Final = Base + (Base * Margem%)
-            produtoDb.PrecoVenda = produtoDb.PrecoBase + (produtoDb.PrecoBase * (margem / 100));
-            produtoDb.Estado = "Ativo";
-
-            await context.SaveChangesAsync();
-            await CarregarPendentes(); // Recarrega a lista
-        }
-    }
-
-    private async Task RejeitarProduto(Produto p)
+    private async Task Aprovar(Produto p)
     {
         using var context = DbFactory.CreateDbContext();
-        var produtoDb = await context.Produtos.FindAsync(p.Id);
-
-        if (produtoDb != null)
+        var prod = await context.Produtos.FindAsync(p.Id);
+        if (prod != null)
         {
-            produtoDb.Estado = "Rejeitado"; // Ou "Inativo"
+            decimal m = margens[p.Id];
+            prod.PrecoVenda = prod.PrecoBase + (prod.PrecoBase * (m / 100));
+            prod.Estado = "Ativo";
+
             await context.SaveChangesAsync();
-            await CarregarPendentes();
+            await CarregarDados();
+        }
+    }
+
+    private async Task Rejeitar(Produto p)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var prod = await context.Produtos.FindAsync(p.Id);
+        if (prod != null)
+        {
+            // Podes mudar o estado ou apagar
+            prod.Estado = "Rejeitado";
+            await context.SaveChangesAsync();
+            await CarregarDados();
         }
     }
 }
