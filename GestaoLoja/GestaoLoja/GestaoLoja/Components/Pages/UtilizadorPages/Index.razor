@@ -1,0 +1,150 @@
+﻿@page "/utilizadores"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using GestaoLoja.Data
+@using Microsoft.EntityFrameworkCore
+
+@attribute [Authorize(Roles = "Administrador,Funcionario")]
+
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<PageTitle>Gestão de Utilizadores</PageTitle>
+
+<h1>Utilizadores Registados</h1>
+
+@if (!string.IsNullOrEmpty(mensagemSucesso))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @mensagemSucesso
+        <button type="button" class="btn-close" @onclick="() => mensagemSucesso = null"></button>
+    </div>
+}
+
+@if (listaUtilizadores == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Nome</th>
+                <th>Perfil (Role)</th>
+                <th>Estado</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in listaUtilizadores)
+            {
+                // Determina a role atual para preencher a dropdown (assume a primeira que encontrar)
+                var roleAtual = userRoles.ContainsKey(user.Id) && userRoles[user.Id].Any()
+                ? userRoles[user.Id].First()
+                : "";
+
+                <tr>
+                    <td>@user.Email</td>
+                    <td>@user.Nome</td>
+                    <td>
+                        @if (user.UserName == "admin@mycoll.pt")
+                        {
+                            <span class="badge bg-danger">Super Admin (Fixo)</span>
+                        }
+                        else
+                        {
+                            @* Dropdown para mudar a Role *@
+                            <select class="form-select form-select-sm"
+                                    value="@roleAtual"
+                                    @onchange="@(e => AlterarRole(user, e.Value?.ToString()))">
+                                @foreach (var r in todasRoles)
+                                {
+                                    <option value="@r">@r</option>
+                                }
+                            </select>
+                        }
+                    </td>
+                    <td>
+                        <span class="badge @(user.Estado == "Ativo" ? "bg-success" : "bg-warning text-dark")">
+                            @user.Estado
+                        </span>
+                    </td>
+                    <td>
+                        @if (user.UserName != "admin@mycoll.pt")
+                        {
+                            @if (user.Estado != "Ativo")
+                            {
+                                <button class="btn btn-sm btn-success" @onclick='() => AlterarEstado(user, "Ativo")'>Ativar</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm btn-warning" @onclick='() => AlterarEstado(user, "Pendente")'>Suspender</button>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ApplicationUser>? listaUtilizadores;
+    private Dictionary<string, IList<string>> userRoles = new();
+    private List<string> todasRoles = new();
+    private string? mensagemSucesso;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Carrega a lista de Roles disponíveis na BD (Admin, Cliente, etc.)
+        todasRoles = await RoleManager.Roles.Select(r => r.Name!).OrderBy(n => n).ToListAsync();
+
+        await CarregarUtilizadores();
+    }
+
+    private async Task CarregarUtilizadores()
+    {
+        listaUtilizadores = await UserManager.Users.ToListAsync();
+        userRoles.Clear();
+
+        foreach (var user in listaUtilizadores)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userRoles[user.Id] = roles;
+        }
+    }
+
+    private async Task AlterarRole(ApplicationUser user, string? novaRole)
+    {
+        if (string.IsNullOrEmpty(novaRole)) return;
+
+        // 1. Remover roles antigas (garante que o user só tem uma role de cada vez)
+        var rolesAtuais = await UserManager.GetRolesAsync(user);
+        if (rolesAtuais.Any())
+        {
+            await UserManager.RemoveFromRolesAsync(user, rolesAtuais);
+        }
+
+        // 2. Adicionar a nova role
+        await UserManager.AddToRoleAsync(user, novaRole);
+
+        // 3. Feedback e Atualizar
+        mensagemSucesso = $"Perfil de {user.UserName} alterado para {novaRole}.";
+        await CarregarUtilizadores();
+    }
+
+    private async Task AlterarEstado(ApplicationUser user, string novoEstado)
+    {
+        var u = await UserManager.FindByIdAsync(user.Id);
+        if (u != null)
+        {
+            u.Estado = novoEstado;
+            await UserManager.UpdateAsync(u);
+            await CarregarUtilizadores();
+        }
+    }
+}
