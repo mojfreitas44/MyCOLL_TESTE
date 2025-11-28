@@ -31,18 +31,31 @@ else
 
                 <input type="hidden" name="Produto.Id" value="@Produto.Id" />
 
-                @* --- CORREÇÃO 1: Adicionado Context="fornecedorContext" --- *@
+                @* --- ZONA DE MENSAGENS DE ERRO/AVISO --- *@
+
+                @* 1. Erro de Validação de Negócio (Opção B) *@
+                @if (!string.IsNullOrEmpty(mensagemErro))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Atenção!</strong> @mensagemErro
+                        <button type="button" class="btn-close" @onclick="() => mensagemErro = null"></button>
+                    </div>
+                }
+
+                @* 2. Erro de Upload de Imagem *@
+                @if (!string.IsNullOrEmpty(erroImagem))
+                {
+                    <div class="alert alert-danger">@erroImagem</div>
+                }
+
+                @* 3. Aviso para Fornecedores *@
                 <AuthorizeView Roles="Fornecedor" Context="fornecedorContext">
                     <div class="alert alert-warning">
                         <strong>Nota:</strong> Ao alterar os dados deste produto, ele voltará automaticamente para o estado
                         <span class="badge bg-warning text-dark">Pendente</span> e terá de ser reavaliado pela loja.
                     </div>
                 </AuthorizeView>
-
-                @if (!string.IsNullOrEmpty(erroImagem))
-                {
-                    <div class="alert alert-danger">@erroImagem</div>
-                }
+                @* --------------------------------------- *@
 
                 <div class="mb-3">
                     <label class="form-label">Imagem Atual</label>
@@ -88,15 +101,18 @@ else
                     </div>
                 </div>
 
-                @* --- CORREÇÃO 2: Mantém-se o Context="authContext" --- *@
+                @* --- ZONA EXCLUSIVA PARA ADMIN/STAFF --- *@
                 <AuthorizeView Roles="Administrador,Funcionario" Context="authContext">
                     <div class="card bg-light mb-3">
                         <div class="card-body">
                             <h5 class="card-title">Área de Gestão</h5>
                             <div class="mb-3">
                                 <label class="form-label">Preço de Venda (Final)</label>
-                                <InputNumber @bind-Value="Produto.PrecoVenda" class="form-control" />
-                                <div class="form-text">Ao alterar o preço base, pode querer ajustar este valor manualmente.</div>
+                                @* O 'min' ajuda na interface, a validação C# garante a segurança *@
+                                <InputNumber @bind-Value="Produto.PrecoVenda" class="form-control" min="@Produto.PrecoBase" />
+                                <div class="form-text">
+                                    O Preço de Venda deve ser superior ou igual a @Produto.PrecoBase.ToString("C").
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Estado</label>
@@ -132,6 +148,7 @@ else
 
     private List<Categoria> categorias = new();
     private string? erroImagem;
+    private string? mensagemErro; // Variável para guardar o erro de validação
 
     protected override async Task OnInitializedAsync()
     {
@@ -172,6 +189,9 @@ else
 
     private async Task AtualizarProduto()
     {
+        // Limpar erros anteriores
+        mensagemErro = null;
+
         using var context = DbFactory.CreateDbContext();
 
         // 1. Verificar quem está a editar
@@ -180,10 +200,20 @@ else
 
         bool isAdminOrStaff = user.IsInRole("Administrador") || user.IsInRole("Funcionario");
 
-        // 2. Aplicar Regra de Negócio: Se for Fornecedor, o produto volta para Pendente
+        // 2. Aplicar Lógica
         if (!isAdminOrStaff)
         {
+            // Se for Fornecedor, volta para Pendente obrigatoriamente
             Produto!.Estado = "Pendente";
+        }
+        else
+        {
+            // --- IMPLEMENTAÇÃO DA OPÇÃO B (Validar Preço) ---
+            if (Produto!.PrecoVenda < Produto.PrecoBase)
+            {
+                mensagemErro = $"Erro de Preço: O Preço de Venda ({Produto.PrecoVenda:C}) não pode ser inferior ao Preço Base ({Produto.PrecoBase:C}). A loja perderia dinheiro.";
+                return; // Interrompe o processo, não guarda nada!
+            }
         }
 
         // 3. Guardar
