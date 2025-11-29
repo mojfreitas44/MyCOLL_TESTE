@@ -1,7 +1,139 @@
 ﻿@page "/"
+@using Microsoft.EntityFrameworkCore
+@using GestaoLoja.Data
+@using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Home</PageTitle>
+<PageTitle>MyCOLL</PageTitle>
 
-<h1>Hello, world!</h1>
+<AuthorizeView Roles="Administrador,Funcionario">
+    <Authorized>
+        @* --- VISÃO DE BACKOFFICE (DASHBOARD) --- *@
+        <div class="mb-4 fade-in">
+            <h1 class="fw-bold text-primary">Dashboard de Gestão</h1>
+            <p class="text-muted">Resumo da atividade da loja.</p>
+        </div>
 
-Welcome to your new app.
+        @if (isLoading)
+        {
+            <div class="d-flex justify-content-center mt-5">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="card shadow-sm border-0 border-start border-success border-5 h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted small mb-2">Total Vendas</h6>
+                            <h3 class="fw-bold text-dark mb-0">@totalVendas.ToString("C")</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm border-0 border-start border-warning border-5 h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted small mb-2">Encomendas Pendentes</h6>
+                            <h3 class="fw-bold text-dark mb-0">@encomendasPendentes</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm border-0 border-start border-danger border-5 h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted small mb-2">Aprovar Produtos</h6>
+                            <h3 class="fw-bold text-dark mb-0">@produtosPendentes</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow-sm border-0 border-start border-info border-5 h-100">
+                        <div class="card-body">
+                            <h6 class="text-uppercase text-muted small mb-2">Utilizadores</h6>
+                            <h3 class="fw-bold text-dark mb-0">@totalUsers</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </Authorized>
+    <NotAuthorized>
+        @* --- VISÃO PÚBLICA (CAPA BONITA) --- *@
+        <div class="hero-section text-center p-5 rounded-3"
+             style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1554188248-986adbb73be4?q=80&w=1920&auto=format&fit=crop'); background-size: cover; background-position: center; color: white; min-height: 500px; display: flex; flex-direction: column; justify-content: center;">
+
+            <h1 class="display-4 fw-bold mb-3">Bem-vindo ao MyCOLL</h1>
+            <p class="lead mb-4">A plataforma premium para colecionadores exigentes.</p>
+            <p class="fs-5">Moedas • Selos • Brinquedos • Miniaturas</p>
+
+            <div class="mt-4">
+                <a href="Account/Login" class="btn btn-primary btn-lg px-5 me-2">Entrar</a>
+                <a href="sobre" class="btn btn-outline-light btn-lg px-5">Sobre Nós</a>
+            </div>
+        </div>
+
+        <div class="container mt-5">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="p-3">
+                        <i class="bi bi-shield-check fs-1 text-primary"></i>
+                        <h4 class="mt-3">Autenticidade</h4>
+                        <p class="text-muted">Todos os itens são verificados pelos nossos especialistas.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3">
+                        <i class="bi bi-globe fs-1 text-primary"></i>
+                        <h4 class="mt-3">Comunidade Global</h4>
+                        <p class="text-muted">Ligue-se a colecionadores de todo o mundo.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3">
+                        <i class="bi bi-truck fs-1 text-primary"></i>
+                        <h4 class="mt-3">Envio Seguro</h4>
+                        <p class="text-muted">Embalamento cuidado e parceiros de transporte fiáveis.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool isLoading = true;
+    private decimal totalVendas;
+    private int encomendasPendentes;
+    private int produtosPendentes;
+    private int totalUsers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verificar permissões antes de carregar dados pesados
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.IsInRole("Administrador") || user.IsInRole("Funcionario"))
+        {
+            try
+            {
+                using var context = DbFactory.CreateDbContext();
+
+                // Nota: Verifica se a tabela Encomendas já existe antes de correres isto
+                if (await context.Database.CanConnectAsync())
+                {
+                    // totalVendas = await context.Encomendas.SumAsync(e => e.ValorTotal);
+                    // encomendasPendentes = await context.Encomendas.CountAsync(e => e.Estado == "Pendente");
+                    produtosPendentes = await context.Produtos.CountAsync(p => p.Estado == "Pendente");
+                    totalUsers = await context.Users.CountAsync();
+                }
+            }
+            catch { }
+        }
+
+        isLoading = false;
+    }
+}
