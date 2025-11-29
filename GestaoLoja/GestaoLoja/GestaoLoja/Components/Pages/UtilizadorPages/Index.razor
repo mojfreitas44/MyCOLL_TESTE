@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Identity
 @using GestaoLoja.Data
 @using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
 
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
 
@@ -42,30 +43,36 @@ else
         <tbody>
             @foreach (var user in listaUtilizadores)
             {
-                // Determina a role atual para preencher a dropdown (assume a primeira que encontrar)
-                var roleAtual = userRoles.ContainsKey(user.Id) && userRoles[user.Id].Any()
+                // Ignorar o próprio utilizador (Regra: Não pode gerir o seu próprio registo)
+                if (user.Id == currentUserId) continue;
+
+                var roleDoAlvo = userRoles.ContainsKey(user.Id) && userRoles[user.Id].Any()
                 ? userRoles[user.Id].First()
-                : "";
+                : "Sem Role";
 
                 <tr>
                     <td>@user.Email</td>
                     <td>@user.Nome</td>
                     <td>
-                        @if (user.UserName == "admin@mycoll.pt")
+                        @* LÓGICA DE PERMISSÃO PARA MUDAR ROLES *@
+                        @if (PodeGerirRole(roleDoAlvo))
                         {
-                            <span class="badge bg-danger">Super Admin (Fixo)</span>
-                        }
-                        else
-                        {
-                            @* Dropdown para mudar a Role *@
                             <select class="form-select form-select-sm"
-                                    value="@roleAtual"
+                                    value="@roleDoAlvo"
                                     @onchange="@(e => AlterarRole(user, e.Value?.ToString()))">
                                 @foreach (var r in todasRoles)
                                 {
+                                    // Funcionário não pode atribuir role de Admin ou Funcionário
+                                    if (!euSouAdmin && (r == "Administrador" || r == "Funcionario")) continue;
+
                                     <option value="@r">@r</option>
                                 }
                             </select>
+                        }
+                        else
+                        {
+                            @* Apenas mostra o texto se não tiver permissão para mudar *@
+                            <span class="badge bg-secondary">@roleDoAlvo</span>
                         }
                     </td>
                     <td>
@@ -74,7 +81,8 @@ else
                         </span>
                     </td>
                     <td>
-                        @if (user.UserName != "admin@mycoll.pt")
+                        @* LÓGICA DE PERMISSÃO PARA MUDAR ESTADO *@
+                        @if (PodeGerirEstado(roleDoAlvo))
                         {
                             @if (user.Estado != "Ativo")
                             {
@@ -84,6 +92,10 @@ else
                             {
                                 <button class="btn btn-sm btn-warning" @onclick='() => AlterarEstado(user, "Pendente")'>Suspender</button>
                             }
+                        }
+                        else
+                        {
+                            <span class="text-muted small">Sem permissão</span>
                         }
                     </td>
                 </tr>
@@ -98,11 +110,21 @@ else
     private List<string> todasRoles = new();
     private string? mensagemSucesso;
 
+    // Variáveis de controlo de permissões
+    private string currentUserId = "";
+    private bool euSouAdmin = false;
+
     protected override async Task OnInitializedAsync()
     {
-        // Carrega a lista de Roles disponíveis na BD (Admin, Cliente, etc.)
-        todasRoles = await RoleManager.Roles.Select(r => r.Name!).OrderBy(n => n).ToListAsync();
+        // 1. Obter quem sou eu
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userPrincipal = authState.User;
 
+        currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        euSouAdmin = userPrincipal.IsInRole("Administrador");
+
+        // 2. Carregar dados
+        todasRoles = await RoleManager.Roles.Select(r => r.Name!).OrderBy(n => n).ToListAsync();
         await CarregarUtilizadores();
     }
 
@@ -118,22 +140,39 @@ else
         }
     }
 
+    // --- REGRAS DE NEGÓCIO ---
+
+    // Regra: Só Admin gere Funcionários. Admin/Func gerem Clientes/Fornecedores.
+    private bool PodeGerirRole(string roleAlvo)
+    {
+        if (euSouAdmin) return true; // Admin pode tudo (menos a si mesmo, filtrado no foreach)
+
+        // Se sou Funcionário, SÓ posso mexer em Cliente ou Fornecedor
+        if (roleAlvo == "Cliente" || roleAlvo == "Fornecedor" || roleAlvo == "Sem Role") return true;
+
+        return false; // Funcionário não mexe em Admin nem noutros Funcionários
+    }
+
+    private bool PodeGerirEstado(string roleAlvo)
+    {
+        // Mesma lógica: Funcionário não pode suspender o Admin!
+        return PodeGerirRole(roleAlvo);
+    }
+
+    // --------------------------
+
     private async Task AlterarRole(ApplicationUser user, string? novaRole)
     {
         if (string.IsNullOrEmpty(novaRole)) return;
 
-        // 1. Remover roles antigas (garante que o user só tem uma role de cada vez)
+        // Segurança extra no backend
+        if (!euSouAdmin && (novaRole == "Administrador" || novaRole == "Funcionario")) return;
+
         var rolesAtuais = await UserManager.GetRolesAsync(user);
-        if (rolesAtuais.Any())
-        {
-            await UserManager.RemoveFromRolesAsync(user, rolesAtuais);
-        }
+        if (rolesAtuais.Any()) await UserManager.RemoveFromRolesAsync(user, rolesAtuais);
 
-        // 2. Adicionar a nova role
         await UserManager.AddToRoleAsync(user, novaRole);
-
-        // 3. Feedback e Atualizar
-        mensagemSucesso = $"Perfil de {user.UserName} alterado para {novaRole}.";
+        mensagemSucesso = $"Perfil alterado para {novaRole}.";
         await CarregarUtilizadores();
     }
 
