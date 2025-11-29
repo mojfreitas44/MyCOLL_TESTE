@@ -3,11 +3,16 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
 
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+
+@* --- INJEÇÕES NECESSÁRIAS --- *@
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
 @rendermode InteractiveServer
 
 <PageTitle>Gestão de Produtos</PageTitle>
@@ -18,7 +23,6 @@
         <a href="produtos/create" class="btn btn-primary">
             <i class="bi bi-plus-lg"></i> Novo Colecionável
         </a>
-        @* Atalho rápido para aprovações se for Admin *@
         <AuthorizeView Roles="Administrador,Funcionario">
             <a href="produtos/pendentes" class="btn btn-warning ms-2">
                 <i class="bi bi-exclamation-circle"></i> Aprovar Pendentes
@@ -117,12 +121,8 @@ else
                         }
                     </td>
                     <td class="text-end">
-                        <a href="produtos/edit?id=@p.Id" class="btn btn-sm btn-outline-primary">
-                            Editar
-                        </a>
-                        <a href="produtos/delete?id=@p.Id" class="btn btn-sm btn-outline-danger ms-1">
-                            Apagar
-                        </a>
+                        <a href="produtos/edit?id=@p.Id" class="btn btn-sm btn-outline-primary">Editar</a>
+                        <a href="produtos/delete?id=@p.Id" class="btn btn-sm btn-outline-danger ms-1">Apagar</a>
                     </td>
                 </tr>
             }
@@ -132,17 +132,27 @@ else
 
 @code {
     private List<Produto>? produtos;
-    private string estadoFiltro = "Ativo"; // Começa a mostrar só os ativos por defeito
+    private string estadoFiltro = "Ativo";
     private string? userId;
     private bool ehFornecedor;
 
     protected override async Task OnInitializedAsync()
     {
-        // Obter ID do utilizador atual para saber quais são os "Meus"
+        // 1. Obter o utilizador atual
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        ehFornecedor = user.IsInRole("Fornecedor");
+        var userPrincipal = authState.User;
+
+        // --- SEGURANÇA EXTRA: Verificar se está ATIVO ---
+        var userDb = await UserManager.GetUserAsync(userPrincipal);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // ------------------------------------------------
+
+        userId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        ehFornecedor = userPrincipal.IsInRole("Fornecedor");
 
         await CarregarProdutos();
     }
@@ -160,18 +170,14 @@ else
             .Include(p => p.Categoria)
             .AsQueryable();
 
-        // 1. Se não for Admin/Staff, só vê os seus próprios produtos!
-        // (Segurança básica: um fornecedor não deve gerir produtos de outros)
-        // Nota: Se quiseres que todos vejam tudo, remove este 'if'.
-        // Mas para "Gestão", o Admin vê tudo, o Fornecedor vê o seu stock.
-        /* var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        if (authState.User.IsInRole("Fornecedor") && !authState.User.IsInRole("Administrador") && !authState.User.IsInRole("Funcionario"))
+        // Se quiseres que o fornecedor só veja os seus, descomenta isto:
+        /*
+        if (ehFornecedor)
         {
-            query = query.Where(p => p.FornecedorId == userId);
+             query = query.Where(p => p.FornecedorId == userId);
         }
         */
 
-        // 2. Aplicar Filtro de Estado
         if (estadoFiltro != "Todos")
         {
             query = query.Where(p => p.Estado == estadoFiltro);
