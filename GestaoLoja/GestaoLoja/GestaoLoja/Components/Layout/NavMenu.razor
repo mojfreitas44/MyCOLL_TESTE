@@ -28,12 +28,6 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="auth">
-                <span class="bi bi-lock-nav-menu" aria-hidden="true"></span> Auth Required
-            </NavLink>
-        </div>
-
         <AuthorizeView Roles="Administrador,Funcionario">
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="categorias">
@@ -44,7 +38,7 @@
 
         <AuthorizeView Roles="Administrador,Funcionario,Fornecedor">
             <div class="nav-item px-3">
-                <NavLink class="nav-link" href="produtos">
+                <NavLink class="nav-link" href="produtos" Match="NavLinkMatch.All">
                     <span class="bi bi-cart-fill-nav-menu" aria-hidden="true"></span> Produtos
                 </NavLink>
             </div>
