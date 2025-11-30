@@ -16,7 +16,11 @@
 <PageTitle>Apagar Produto</PageTitle>
 
 <h1>Apagar Produto</h1>
-<h3 class="text-danger">Tem a certeza que deseja eliminar este colecionável?</h3>
+
+@if (mensagemErro != null)
+{
+    <div class="alert alert-danger">@mensagemErro</div>
+}
 
 @if (produto is null)
 {
@@ -41,34 +45,39 @@ else
                     <h5 class="card-title">@produto.Nome</h5>
                     <p class="card-text">@produto.Descricao</p>
                     <dl class="row mb-0">
-                        <dt class="col-sm-4">Preço Venda</dt>
+                        <dt class="col-sm-4">Preço</dt>
                         <dd class="col-sm-8">@produto.PrecoVenda.ToString("C")</dd>
                         <dt class="col-sm-4">Estado</dt>
                         <dd class="col-sm-8">@produto.Estado</dd>
-                        <dt class="col-sm-4">Stock</dt>
-                        <dd class="col-sm-8">@produto.Stock</dd>
                     </dl>
                 </div>
             </div>
         </div>
         <div class="card-footer text-end">
-            <EditForm Model="produto" OnValidSubmit="ApagarProduto" FormName="delete_prod" method="post">
-                <button type="submit" class="btn btn-danger">Confirmar Eliminação</button>
-                <a href="produtos" class="btn btn-secondary">Cancelar</a>
-            </EditForm>
+            @if (podeApagar)
+            {
+                <button class="btn btn-danger" @onclick="ApagarProduto">Confirmar Eliminação</button>
+            }
+            else
+            {
+                <button class="btn btn-secondary" disabled>Impossível Apagar</button>
+            }
+            <a href="produtos" class="btn btn-outline-secondary">Cancelar</a>
         </div>
     </div>
 }
 
 @code {
     private Produto? produto;
+    private string? mensagemErro;
+    private bool podeApagar = true;
 
     [SupplyParameterFromQuery]
     public int Id { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA: PORTEIRO ---
+        // Segurança (Porteiro)
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -76,7 +85,6 @@ else
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // ---------------------------
 
         using var context = DbFactory.CreateDbContext();
         produto = await context.Produtos.FirstOrDefaultAsync(m => m.Id == Id);
@@ -84,14 +92,34 @@ else
         if (produto is null)
         {
             NavigationManager.NavigateTo("produtos");
+            return;
         }
+
+        // VERIFICAÇÃO: O produto já foi vendido?
+        // Precisamos de ver se existe na tabela 'EncomendaItem' (que se chama 'EncomendaItem' na BD, mas o DbSet pode não estar explícito se usaste apenas navegação)
+        // Se não tiveres DbSet<EncomendaItem>, usamos a navegação inversa ou SQL cru, mas o ideal é ter o DbSet.
+        // Vamos assumir que o EF Core consegue verificar via navegação se tentarmos apagar e der erro,
+        // mas o ideal é verificar antes. Como não temos DbSet<EncomendaItem> exposto no DbContext (ainda), vamos usar try-catch.
     }
 
     private async Task ApagarProduto()
     {
         using var context = DbFactory.CreateDbContext();
-        context.Produtos.Remove(produto!);
-        await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("produtos");
+        try
+        {
+            context.Produtos.Remove(produto!);
+            await context.SaveChangesAsync();
+            NavigationManager.NavigateTo("produtos");
+        }
+        catch (DbUpdateException)
+        {
+            // Este erro ocorre se houver Encomendas a usar este produto (Foreign Key)
+            mensagemErro = "Este produto não pode ser apagado porque já faz parte de encomendas passadas. Sugestão: Mude o estado para 'Inativo'.";
+            podeApagar = false; // Bloqueia o botão
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro inesperado: " + ex.Message;
+        }
     }
 }

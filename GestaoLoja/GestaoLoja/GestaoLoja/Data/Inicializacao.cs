@@ -15,7 +15,7 @@ namespace GestaoLoja.Data
     public static class Inicializacao
     {
         /// <summary>
-        /// Garante que as Roles e o Administrador existem.
+        /// Método Principal: Garante que o sistema tem Roles e um Administrador para entrar.
         /// </summary>
         public static async Task CriaDadosIniciais(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
@@ -31,7 +31,8 @@ namespace GestaoLoja.Data
             }
 
             // 2. Garantir que o Administrador existe e está Ativo
-            var emailAdmin = "admin@mycoll.pt"; // O teu email de admin
+            // ATENÇÃO: Confirma se este é o email que queres usar como Super Admin
+            var emailAdmin = "admin@mycoll.pt";
 
             var userAdmin = await userManager.FindByEmailAsync(emailAdmin);
             if (userAdmin != null)
@@ -57,65 +58,31 @@ namespace GestaoLoja.Data
                     Email = emailAdmin,
                     EmailConfirmed = true,
                     PhoneNumberConfirmed = true,
-                    Estado = "Ativo"
+                    Estado = "Ativo",
+                    Nome = "Administrador Principal"
                 };
                 await userManager.CreateAsync(novoAdmin, "Admin123!");
                 await userManager.AddToRoleAsync(novoAdmin, Roles.Administrador);
             }
         }
-        /*
+
         /// <summary>
-        /// Cria categorias base apenas se a tabela estiver vazia.
-        /// (Podes apagar este método se preferires gerir categorias manualmente)
+        /// Opcional: Cria as categorias base do negócio (Moedas, Selos, etc.)
         /// </summary>
         public static async Task SeedCategoriasPadrao(ApplicationDbContext db)
         {
+            // Se já existirem categorias, não faz nada (respeita os dados reais)
             if (await db.Categorias.AnyAsync()) return;
 
             db.Categorias.AddRange(
-                new Categoria { Nome = "Moedas", Descricao = "Numismática" },
-                new Categoria { Nome = "Selos", Descricao = "Filatelia" },
-                new Categoria { Nome = "Complementos", Descricao = "Material de preservação" }
+                new Categoria { Nome = "Moedas", Descricao = "Numismática antiga e moderna" },
+                new Categoria { Nome = "Selos", Descricao = "Filatelia de todo o mundo" },
+                new Categoria { Nome = "Carteiras de Fósforos", Descricao = "Filumenismo" },
+                new Categoria { Nome = "Pacotes de Açúcar", Descricao = "Perifilía" },
+                new Categoria { Nome = "Complementos", Descricao = "Álbuns, lupas e material de preservação" }
             );
 
             await db.SaveChangesAsync();
         }
-
-        /// <summary>
-        /// Cria uma encomenda de teste para desenvolvimento.
-        /// (Podes apagar este método quando já não precisares de testes)
-        /// </summary>
-        public static async Task SeedEncomendaTeste(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
-        {
-            if (await db.Encomendas.AnyAsync()) return;
-
-            var cliente = await userManager.FindByEmailAsync("admin@mycoll.pt");
-            var produto = await db.Produtos.FirstOrDefaultAsync();
-
-            if (cliente == null || produto == null) return;
-
-            var encomenda = new Encomenda
-            {
-                Data = DateTime.Now,
-                ValorTotal = produto.PrecoVenda,
-                Estado = "Pendente",
-                MoradaEnvio = "Loja (Teste)",
-                MetodoPagamento = "Dinheiro",
-                MetodoEntrega = "Levantamento",
-                ClienteId = cliente.Id,
-                Itens = new List<EncomendaItem>
-                {
-                    new EncomendaItem
-                    {
-                        ProdutoId = produto.Id,
-                        Quantidade = 1,
-                        PrecoUnitario = produto.PrecoVenda
-                    }
-                }
-            };
-
-            db.Encomendas.Add(encomenda);
-            await db.SaveChangesAsync();
-        }*/
     }
 }
