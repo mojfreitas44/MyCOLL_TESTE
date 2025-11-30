@@ -3,9 +3,14 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
 @rendermode InteractiveServer
 
 <PageTitle>Modos de Entrega</PageTitle>
@@ -57,6 +62,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA: Verificar se está ATIVO ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // ------------------------------------------
+
         using var context = DbFactory.CreateDbContext();
         modos = await context.ModosEntrega.OrderBy(m => m.Nome).ToListAsync();
     }

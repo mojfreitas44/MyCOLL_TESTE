@@ -5,12 +5,15 @@
 @using GestaoLoja.Entities
 @using System.IO
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
 
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
 <PageTitle>Editar Produto</PageTitle>
 
@@ -31,9 +34,6 @@ else
 
                 <input type="hidden" name="Produto.Id" value="@Produto.Id" />
 
-                @* --- ZONA DE MENSAGENS DE ERRO/AVISO --- *@
-
-                @* 1. Erro de Validação de Negócio (Opção B) *@
                 @if (!string.IsNullOrEmpty(mensagemErro))
                 {
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -42,20 +42,17 @@ else
                     </div>
                 }
 
-                @* 2. Erro de Upload de Imagem *@
+                <AuthorizeView Roles="Fornecedor" Context="fornecedorContext">
+                    <div class="alert alert-warning">
+                        <strong>Nota:</strong> Ao alterar os dados deste produto, ele voltará automaticamente para o estado
+                        <span class="badge bg-warning text-dark">Pendente</span> e terá de ser reavaliado.
+                    </div>
+                </AuthorizeView>
+
                 @if (!string.IsNullOrEmpty(erroImagem))
                 {
                     <div class="alert alert-danger">@erroImagem</div>
                 }
-
-                @* 3. Aviso para Fornecedores *@
-                <AuthorizeView Roles="Fornecedor" Context="fornecedorContext">
-                    <div class="alert alert-warning">
-                        <strong>Nota:</strong> Ao alterar os dados deste produto, ele voltará automaticamente para o estado
-                        <span class="badge bg-warning text-dark">Pendente</span> e terá de ser reavaliado pela loja.
-                    </div>
-                </AuthorizeView>
-                @* --------------------------------------- *@
 
                 <div class="mb-3">
                     <label class="form-label">Imagem Atual</label>
@@ -71,7 +68,6 @@ else
                 <div class="mb-3">
                     <label class="form-label">Nome</label>
                     <InputText @bind-Value="Produto.Nome" class="form-control" />
-                    <ValidationMessage For="() => Produto.Nome" class="text-danger" />
                 </div>
 
                 <div class="mb-3">
@@ -87,7 +83,6 @@ else
                 <div class="mb-3">
                     <label class="form-label">Descrição</label>
                     <InputTextArea @bind-Value="Produto.Descricao" class="form-control" rows="3" />
-                    <ValidationMessage For="() => Produto.Descricao" class="text-danger" />
                 </div>
 
                 <div class="row">
@@ -101,14 +96,12 @@ else
                     </div>
                 </div>
 
-                @* --- ZONA EXCLUSIVA PARA ADMIN/STAFF --- *@
                 <AuthorizeView Roles="Administrador,Funcionario" Context="authContext">
                     <div class="card bg-light mb-3">
                         <div class="card-body">
                             <h5 class="card-title">Área de Gestão</h5>
                             <div class="mb-3">
                                 <label class="form-label">Preço de Venda (Final)</label>
-                                @* O 'min' ajuda na interface, a validação C# garante a segurança *@
                                 <InputNumber @bind-Value="Produto.PrecoVenda" class="form-control" min="@Produto.PrecoBase" />
                                 <div class="form-text">
                                     O Preço de Venda deve ser superior ou igual a @Produto.PrecoBase.ToString("C").
@@ -117,9 +110,9 @@ else
                             <div class="mb-3">
                                 <label class="form-label">Estado</label>
                                 <InputSelect @bind-Value="Produto.Estado" class="form-select">
-                                    <option value="Pendente">Pendente (Aguarda Aprovação)</option>
-                                    <option value="Ativo">Ativo (À Venda)</option>
-                                    <option value="Inativo">Inativo (Suspenso)</option>
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Ativo">Ativo</option>
+                                    <option value="Inativo">Inativo</option>
                                     <option value="Rejeitado">Rejeitado</option>
                                 </InputSelect>
                             </div>
@@ -129,7 +122,7 @@ else
 
                 <div class="mb-3 form-check">
                     <InputCheckbox @bind-Value="Produto.ParaVenda" class="form-check-input" id="paraVenda" />
-                    <label class="form-check-label" for="paraVenda">Disponível para Venda? (Se desligado, serve apenas para exibir na coleção)</label>
+                    <label class="form-check-label" for="paraVenda">Disponível para Venda?</label>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Guardar Alterações</button>
@@ -148,21 +141,27 @@ else
 
     private List<Categoria> categorias = new();
     private string? erroImagem;
-    private string? mensagemErro; // Variável para guardar o erro de validação
+    private string? mensagemErro;
 
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA: PORTEIRO ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // ---------------------------
+
         using var context = DbFactory.CreateDbContext();
         categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
 
         if (Produto is null)
         {
             Produto = await context.Produtos.FirstOrDefaultAsync(p => p.Id == Id);
-
-            if (Produto is null)
-            {
-                NavigationManager.NavigateTo("produtos");
-            }
+            if (Produto is null) NavigationManager.NavigateTo("produtos");
         }
     }
 
@@ -173,7 +172,7 @@ else
             var ficheiro = e.File;
             if (ficheiro != null)
             {
-                var maxTamanho = 5 * 1024 * 1024; // 5MB
+                var maxTamanho = 5 * 1024 * 1024;
                 using var stream = ficheiro.OpenReadStream(maxTamanho);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
@@ -189,34 +188,26 @@ else
 
     private async Task AtualizarProduto()
     {
-        // Limpar erros anteriores
         mensagemErro = null;
-
         using var context = DbFactory.CreateDbContext();
 
-        // 1. Verificar quem está a editar
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-
         bool isAdminOrStaff = user.IsInRole("Administrador") || user.IsInRole("Funcionario");
 
-        // 2. Aplicar Lógica
         if (!isAdminOrStaff)
         {
-            // Se for Fornecedor, volta para Pendente obrigatoriamente
             Produto!.Estado = "Pendente";
         }
         else
         {
-            // --- IMPLEMENTAÇÃO DA OPÇÃO B (Validar Preço) ---
             if (Produto!.PrecoVenda < Produto.PrecoBase)
             {
-                mensagemErro = $"Erro de Preço: O Preço de Venda ({Produto.PrecoVenda:C}) não pode ser inferior ao Preço Base ({Produto.PrecoBase:C}). A loja perderia dinheiro.";
-                return; // Interrompe o processo, não guarda nada!
+                mensagemErro = $"Erro: O Preço de Venda ({Produto.PrecoVenda:C}) não pode ser inferior ao Preço Base ({Produto.PrecoBase:C}).";
+                return;
             }
         }
 
-        // 3. Guardar
         context.Attach(Produto!).State = EntityState.Modified;
 
         try
@@ -227,13 +218,9 @@ else
         catch (DbUpdateConcurrencyException)
         {
             if (!context.Produtos.Any(e => e.Id == Produto!.Id))
-            {
                 NavigationManager.NavigateTo("produtos");
-            }
             else
-            {
                 throw;
-            }
         }
     }
 }

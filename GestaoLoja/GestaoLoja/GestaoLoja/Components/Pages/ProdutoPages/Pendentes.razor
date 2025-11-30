@@ -3,10 +3,16 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@* --- INJEÇÕES NOVAS PARA SEGURANÇA --- *@
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
 
 <PageTitle>Produtos Pendentes</PageTitle>
 
@@ -74,6 +80,18 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA: Verificar se está ATIVO ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+
+        // Se não existir ou não estiver Ativo -> RUA!
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // ------------------------------------------
+
         await CarregarDados();
     }
 

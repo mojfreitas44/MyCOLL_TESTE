@@ -3,9 +3,14 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
 @rendermode InteractiveServer
 
 <PageTitle>Gestão de Encomendas</PageTitle>
@@ -51,6 +56,7 @@ else
                             Detalhes
                         </a>
 
+                        @* Lógica de mudança de estado (Aspas simples no onclick para permitir aspas duplas dentro) *@
                         @if (enc.Estado == "Pendente")
                         {
                             <button class="btn btn-sm btn-success ms-1" @onclick='() => MudarEstado(enc, "Pago")'>Marcar Pago</button>
@@ -75,6 +81,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // -----------------
+
         await CarregarDados();
     }
 

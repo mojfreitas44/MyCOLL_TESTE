@@ -3,9 +3,16 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
 
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
 
 <PageTitle>Categorias</PageTitle>
 
@@ -25,6 +32,7 @@ else
         <thead>
             <tr>
                 <th>Nome</th>
+                <th>Categoria Pai</th>
                 <th>Descrição</th>
                 <th>Ações</th>
             </tr>
@@ -34,6 +42,16 @@ else
             {
                 <tr>
                     <td>@item.Nome</td>
+                    <td>
+                        @if (item.CategoriaPai != null)
+                        {
+                            <span class="badge bg-secondary">@item.CategoriaPai.Nome</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">- Raiz -</span>
+                        }
+                    </td>
                     <td>@item.Descricao</td>
                     <td>
                         <a href="categorias/edit?id=@item.Id" class="btn btn-sm btn-outline-secondary">Editar</a>
@@ -46,14 +64,25 @@ else
 }
 
 @code {
-    private ApplicationDbContext context = default!;
     private List<Categoria>? categorias;
 
     protected override async Task OnInitializedAsync()
     {
-        context = DbFactory.CreateDbContext();
-        categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
-    }
+        // --- SEGURANÇA: Verificar se está ATIVO ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // ------------------------------------------
 
-    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+        using var context = DbFactory.CreateDbContext();
+        categorias = await context.Categorias
+            .Include(c => c.CategoriaPai)
+            .OrderBy(c => c.CategoriaPaiId)
+            .ThenBy(c => c.Nome)
+            .ToListAsync();
+    }
 }

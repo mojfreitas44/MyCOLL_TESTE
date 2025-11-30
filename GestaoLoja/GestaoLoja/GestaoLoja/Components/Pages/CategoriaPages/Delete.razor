@@ -3,10 +3,15 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
 
 <PageTitle>Apagar Categoria</PageTitle>
 
@@ -30,7 +35,7 @@ else
 
         <EditForm Model="categoria" OnValidSubmit="ApagarCategoria" FormName="delete" method="post">
             <button type="submit" class="btn btn-danger">Apagar</button>
-            <a href="/categorias" class="btn btn-secondary">Cancelar</a>
+            <a href="categorias" class="btn btn-secondary">Cancelar</a>
         </EditForm>
     </div>
 }
@@ -43,12 +48,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // -----------------
+
         using var context = DbFactory.CreateDbContext();
         categoria = await context.Categorias.FirstOrDefaultAsync(m => m.Id == Id);
 
         if (categoria is null)
         {
-            NavigationManager.NavigateTo("/categorias");
+            NavigationManager.NavigateTo("categorias");
         }
     }
 
@@ -57,6 +72,6 @@ else
         using var context = DbFactory.CreateDbContext();
         context.Categorias.Remove(categoria!);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/categorias");
+        NavigationManager.NavigateTo("categorias");
     }
 }

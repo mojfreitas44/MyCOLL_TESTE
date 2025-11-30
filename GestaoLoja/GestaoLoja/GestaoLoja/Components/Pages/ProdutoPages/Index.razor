@@ -8,7 +8,7 @@
 
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
 
-@* --- INJEÇÕES NECESSÁRIAS --- *@
+@* --- INJEÇÕES --- *@
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
@@ -138,18 +138,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Obter o utilizador atual
+        // --- SEGURANÇA: PORTEIRO ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userPrincipal = authState.User;
-
-        // --- SEGURANÇA EXTRA: Verificar se está ATIVO ---
         var userDb = await UserManager.GetUserAsync(userPrincipal);
+
         if (userDb == null || userDb.Estado != "Ativo")
         {
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // ------------------------------------------------
+        // ---------------------------
 
         userId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         ehFornecedor = userPrincipal.IsInRole("Fornecedor");
@@ -170,7 +169,7 @@ else
             .Include(p => p.Categoria)
             .AsQueryable();
 
-        // Se quiseres que o fornecedor só veja os seus, descomenta isto:
+        // (Opcional) Filtrar para Fornecedores verem apenas os seus
         /*
         if (ehFornecedor)
         {

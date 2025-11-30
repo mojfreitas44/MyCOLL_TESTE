@@ -3,11 +3,15 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Editar Modo</PageTitle>
 
@@ -61,16 +65,21 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Só carrega da BD se não vier de um submit (se Modo for null)
+        // --- SEGURANÇA ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // -----------------
+
         if (Modo is null)
         {
             using var context = DbFactory.CreateDbContext();
             Modo = await context.ModosEntrega.FirstOrDefaultAsync(m => m.Id == Id);
-
-            if (Modo is null)
-            {
-                NavigationManager.NavigateTo("modosentrega");
-            }
+            if (Modo is null) NavigationManager.NavigateTo("modosentrega");
         }
     }
 

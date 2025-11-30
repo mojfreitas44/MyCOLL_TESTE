@@ -5,12 +5,15 @@
 @using GestaoLoja.Entities
 @using System.Security.Claims
 @using System.IO
+@using Microsoft.AspNetCore.Identity
 
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
 <PageTitle>Novo Colecionável</PageTitle>
 
@@ -19,7 +22,6 @@
 
 <div class="row">
     <div class="col-md-6">
-        @* O enctype é vital para o upload de ficheiros *@
         <EditForm Model="Produto" OnValidSubmit="SalvarProduto" FormName="create_prod" method="post" enctype="multipart/form-data">
             <DataAnnotationsValidator />
             <ValidationSummary class="text-danger" />
@@ -50,7 +52,6 @@
                 <InputTextArea @bind-Value="Produto.Descricao" class="form-control" rows="3" />
             </div>
 
-            @* Campo de Upload de Imagem *@
             <div class="mb-3">
                 <label class="form-label">Imagem do Artigo</label>
                 <InputFile OnChange="CarregarImagem" class="form-control" accept=".png,.jpg,.jpeg" />
@@ -88,6 +89,16 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA: PORTEIRO ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // ---------------------------
+
         using var context = DbFactory.CreateDbContext();
         categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
     }
@@ -99,13 +110,12 @@
             var ficheiro = e.File;
             if (ficheiro != null)
             {
-                // Limite de 2MB
                 var maxTamanho = 2 * 1024 * 1024;
                 using var stream = ficheiro.OpenReadStream(maxTamanho);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
                 Produto.Imagem = ms.ToArray();
-                Produto.ImagemUrl = ficheiro.Name; // Guardamos o nome para referência
+                Produto.ImagemUrl = ficheiro.Name;
             }
         }
         catch (Exception ex)
@@ -118,13 +128,12 @@
     {
         using var context = DbFactory.CreateDbContext();
 
-        // Associa ao utilizador atual
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         Produto.FornecedorId = userId;
-        Produto.Estado = "Pendente"; // Regra de negócio
+        Produto.Estado = "Pendente";
         Produto.PrecoVenda = Produto.PrecoBase;
 
         context.Produtos.Add(Produto);

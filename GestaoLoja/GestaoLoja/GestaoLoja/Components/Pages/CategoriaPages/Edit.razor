@@ -3,10 +3,15 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Editar Categoria</PageTitle>
 
@@ -21,7 +26,7 @@ else
 {
     <div class="row">
         <div class="col-md-4">
-            <EditForm Model="Categoria" OnValidSubmit="AtualizarCategoria" FormName="edit" method="post">
+            <EditForm Model="Categoria" OnValidSubmit="AtualizarCategoria" FormName="edit_cat" method="post">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" />
                 <input type="hidden" name="Categoria.Id" value="@Categoria.Id" />
@@ -38,8 +43,22 @@ else
                     <ValidationMessage For="() => Categoria.Descricao" class="text-danger" />
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label">Categoria Pai</label>
+                    <InputSelect @bind-Value="Categoria.CategoriaPaiId" class="form-select">
+                        <option value="">-- Nenhuma (Topo) --</option>
+                        @foreach (var cat in listaCategorias)
+                        {
+                            if (cat.Id != Categoria.Id) // Não pode ser pai de si mesma
+                            {
+                                <option value="@cat.Id">@cat.Nome</option>
+                            }
+                        }
+                    </InputSelect>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Salvar</button>
-                <a href="/categorias" class="btn btn-secondary">Cancelar</a>
+                <a href="categorias" class="btn btn-secondary">Cancelar</a>
             </EditForm>
         </div>
     </div>
@@ -52,17 +71,27 @@ else
     [SupplyParameterFromForm]
     public Categoria? Categoria { get; set; }
 
+    private List<Categoria> listaCategorias = new();
+
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // -----------------
+
+        using var context = DbFactory.CreateDbContext();
+        listaCategorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
+
         if (Categoria is null)
         {
-            using var context = DbFactory.CreateDbContext();
             Categoria = await context.Categorias.FirstOrDefaultAsync(m => m.Id == Id);
-
-            if (Categoria is null)
-            {
-                NavigationManager.NavigateTo("/categorias");
-            }
+            if (Categoria is null) NavigationManager.NavigateTo("categorias");
         }
     }
 
@@ -74,11 +103,14 @@ else
         try
         {
             await context.SaveChangesAsync();
-            NavigationManager.NavigateTo("/categorias");
+            NavigationManager.NavigateTo("categorias");
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw;
+            if (!context.Categorias.Any(e => e.Id == Categoria!.Id))
+                NavigationManager.NavigateTo("categorias");
+            else
+                throw;
         }
     }
 }

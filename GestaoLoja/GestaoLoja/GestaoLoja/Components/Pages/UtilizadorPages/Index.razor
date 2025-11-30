@@ -10,6 +10,8 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
 <PageTitle>Gestão de Utilizadores</PageTitle>
@@ -43,35 +45,38 @@ else
         <tbody>
             @foreach (var user in listaUtilizadores)
             {
-                // Ignorar o próprio utilizador (Regra: Não pode gerir o seu próprio registo)
+                // 1. Regra: Não posso gerir-me a mim próprio
                 if (user.Id == currentUserId) continue;
 
                 var roleDoAlvo = userRoles.ContainsKey(user.Id) && userRoles[user.Id].Any()
                 ? userRoles[user.Id].First()
                 : "Sem Role";
 
+                // 2. Regra: O Super Admin é intocável
+                bool isSuperAdmin = user.Email == "admin@mycoll.pt";
+
                 <tr>
                     <td>@user.Email</td>
                     <td>@user.Nome</td>
                     <td>
-                        @* LÓGICA DE PERMISSÃO PARA MUDAR ROLES *@
-                        @if (PodeGerirRole(roleDoAlvo))
+                        @if (isSuperAdmin)
+                        {
+                            <span class="badge bg-danger">SUPER ADMIN</span>
+                        }
+                        else if (PodeGerirRole(roleDoAlvo))
                         {
                             <select class="form-select form-select-sm"
                                     value="@roleDoAlvo"
                                     @onchange="@(e => AlterarRole(user, e.Value?.ToString()))">
                                 @foreach (var r in todasRoles)
                                 {
-                                    // Funcionário não pode atribuir role de Admin ou Funcionário
                                     if (!euSouAdmin && (r == "Administrador" || r == "Funcionario")) continue;
-
                                     <option value="@r">@r</option>
                                 }
                             </select>
                         }
                         else
                         {
-                            @* Apenas mostra o texto se não tiver permissão para mudar *@
                             <span class="badge bg-secondary">@roleDoAlvo</span>
                         }
                     </td>
@@ -81,8 +86,11 @@ else
                         </span>
                     </td>
                     <td>
-                        @* LÓGICA DE PERMISSÃO PARA MUDAR ESTADO *@
-                        @if (PodeGerirEstado(roleDoAlvo))
+                        @if (isSuperAdmin)
+                        {
+                            <span class="text-muted small"><i class="bi bi-lock-fill"></i> Protegido</span>
+                        }
+                        else if (PodeGerirEstado(roleDoAlvo))
                         {
                             @if (user.Estado != "Ativo")
                             {
@@ -92,6 +100,11 @@ else
                             {
                                 <button class="btn btn-sm btn-warning" @onclick='() => AlterarEstado(user, "Pendente")'>Suspender</button>
                             }
+
+                            @* --- BOTÃO APAGAR CORRIGIDO --- *@
+                            <button class="btn btn-sm btn-outline-danger ms-1" @onclick='() => ApagarUtilizador(user)'>
+                                <i class="bi bi-trash"></i> Apagar
+                            </button>
                         }
                         else
                         {
@@ -109,21 +122,22 @@ else
     private Dictionary<string, IList<string>> userRoles = new();
     private List<string> todasRoles = new();
     private string? mensagemSucesso;
-
-    // Variáveis de controlo de permissões
     private string currentUserId = "";
     private bool euSouAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Obter quem sou eu
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var userPrincipal = authState.User;
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
 
-        currentUserId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
-        euSouAdmin = userPrincipal.IsInRole("Administrador");
+        currentUserId = userDb.Id;
+        euSouAdmin = await UserManager.IsInRoleAsync(userDb, "Administrador");
 
-        // 2. Carregar dados
         todasRoles = await RoleManager.Roles.Select(r => r.Name!).OrderBy(n => n).ToListAsync();
         await CarregarUtilizadores();
     }
@@ -140,49 +154,54 @@ else
         }
     }
 
-    // --- REGRAS DE NEGÓCIO ---
-
-    // Regra: Só Admin gere Funcionários. Admin/Func gerem Clientes/Fornecedores.
     private bool PodeGerirRole(string roleAlvo)
     {
-        if (euSouAdmin) return true; // Admin pode tudo (menos a si mesmo, filtrado no foreach)
-
-        // Se sou Funcionário, SÓ posso mexer em Cliente ou Fornecedor
+        if (euSouAdmin) return true;
         if (roleAlvo == "Cliente" || roleAlvo == "Fornecedor" || roleAlvo == "Sem Role") return true;
-
-        return false; // Funcionário não mexe em Admin nem noutros Funcionários
+        return false;
     }
 
     private bool PodeGerirEstado(string roleAlvo)
     {
-        // Mesma lógica: Funcionário não pode suspender o Admin!
         return PodeGerirRole(roleAlvo);
     }
-
-    // --------------------------
 
     private async Task AlterarRole(ApplicationUser user, string? novaRole)
     {
         if (string.IsNullOrEmpty(novaRole)) return;
+        if (user.Email == "admin@mycoll.pt") return;
 
-        // Segurança extra no backend
         if (!euSouAdmin && (novaRole == "Administrador" || novaRole == "Funcionario")) return;
 
         var rolesAtuais = await UserManager.GetRolesAsync(user);
         if (rolesAtuais.Any()) await UserManager.RemoveFromRolesAsync(user, rolesAtuais);
 
         await UserManager.AddToRoleAsync(user, novaRole);
-        mensagemSucesso = $"Perfil alterado para {novaRole}.";
+        mensagemSucesso = $"Perfil de {user.Email} alterado para {novaRole}.";
         await CarregarUtilizadores();
     }
 
     private async Task AlterarEstado(ApplicationUser user, string novoEstado)
     {
-        var u = await UserManager.FindByIdAsync(user.Id);
-        if (u != null)
+        if (user.Email == "admin@mycoll.pt") return;
+
+        user.Estado = novoEstado;
+        await UserManager.UpdateAsync(user);
+        await CarregarUtilizadores();
+    }
+
+    // --- MÉTODO ATUALIZADO COM CONFIRMAÇÃO ---
+    private async Task ApagarUtilizador(ApplicationUser user)
+    {
+        if (user.Email == "admin@mycoll.pt") return;
+
+        // Pergunta ao utilizador se tem a certeza
+        bool confirmacao = await JSRuntime.InvokeAsync<bool>("confirm", $"Deseja mesmo apagar permanentemente o utilizador {user.Email}?");
+
+        if (confirmacao)
         {
-            u.Estado = novoEstado;
-            await UserManager.UpdateAsync(u);
+            await UserManager.DeleteAsync(user);
+            mensagemSucesso = $"Utilizador {user.Email} foi apagado.";
             await CarregarUtilizadores();
         }
     }

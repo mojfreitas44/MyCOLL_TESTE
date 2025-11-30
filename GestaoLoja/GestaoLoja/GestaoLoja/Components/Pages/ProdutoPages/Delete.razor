@@ -3,11 +3,15 @@
 @using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Apagar Produto</PageTitle>
 
@@ -64,6 +68,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // --- SEGURANÇA: PORTEIRO ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // ---------------------------
+
         using var context = DbFactory.CreateDbContext();
         produto = await context.Produtos.FirstOrDefaultAsync(m => m.Id == Id);
 
@@ -76,7 +90,6 @@ else
     private async Task ApagarProduto()
     {
         using var context = DbFactory.CreateDbContext();
-        // É preciso anexar ou procurar novamente para remover
         context.Produtos.Remove(produto!);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("produtos");

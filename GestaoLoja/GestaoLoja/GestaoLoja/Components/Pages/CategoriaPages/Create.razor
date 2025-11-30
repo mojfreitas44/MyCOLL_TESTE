@@ -1,13 +1,17 @@
 ﻿@page "/categorias/create"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
+@using Microsoft.AspNetCore.Identity
 
-@* ATENÇÃO: O rendermode é essencial para o formulário funcionar sem erros de acesso *@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Nova Categoria</PageTitle>
 
@@ -32,7 +36,17 @@
                 <ValidationMessage For="() => Categoria.Descricao" class="text-danger" />
             </div>
 
-            @* Se já tiveres implementado a hierarquia (CategoriaPai), podes adicionar aqui o select, senão deixa para depois *@
+            <div class="mb-3">
+                <label class="form-label">Categoria Pai (Opcional)</label>
+                <InputSelect @bind-Value="Categoria.CategoriaPaiId" class="form-select">
+                    <option value="">-- Nenhuma (Categoria de Topo) --</option>
+                    @foreach (var cat in listaCategorias)
+                    {
+                        <option value="@cat.Id">@cat.Nome</option>
+                    }
+                </InputSelect>
+                <div class="form-text">Selecione apenas se esta for uma sub-categoria.</div>
+            </div>
 
             <button type="submit" class="btn btn-primary">Salvar</button>
             <a href="categorias" class="btn btn-secondary">Cancelar</a>
@@ -43,6 +57,24 @@
 @code {
     [SupplyParameterFromForm]
     public Categoria Categoria { get; set; } = new();
+
+    private List<Categoria> listaCategorias = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // --- SEGURANÇA ---
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userDb = await UserManager.GetUserAsync(authState.User);
+        if (userDb == null || userDb.Estado != "Ativo")
+        {
+            NavigationManager.NavigateTo("Account/AccessDenied");
+            return;
+        }
+        // -----------------
+
+        using var context = DbFactory.CreateDbContext();
+        listaCategorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
+    }
 
     private async Task AdicionarCategoria()
     {
