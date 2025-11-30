@@ -8,7 +8,6 @@
 
 @attribute [Authorize(Roles = "Administrador,Funcionario,Fornecedor")]
 
-@* --- INJEÇÕES --- *@
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
@@ -31,34 +30,68 @@
     </div>
 </div>
 
-@* --- BARRA DE FILTROS --- *@
+@* --- BARRA DE FILTROS COMPLETA --- *@
 <div class="card p-3 mb-4 bg-light">
     <div class="row g-3 align-items-center">
-        <div class="col-auto">
-            <label class="col-form-label fw-bold">Filtrar por Estado:</label>
-        </div>
-        <div class="col-auto">
-            <select class="form-select" @onchange="FiltrarPorEstado">
+
+        @* Filtro Estado *@
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Estado</label>
+            <select class="form-select" value="@estadoFiltro" @onchange="FiltrarPorEstado">
                 <option value="Todos">Todos</option>
-                <option value="Ativo" selected>Ativos (Na Loja)</option>
+                <option value="Ativo">Ativos (Na Loja)</option>
                 <option value="Pendente">Pendentes</option>
-                <option value="Inativo">Inativos (Escondidos)</option>
+                <option value="Inativo">Inativos</option>
                 <option value="Rejeitado">Rejeitados</option>
             </select>
         </div>
-        <div class="col-auto ms-auto">
-            <span class="text-muted">A mostrar <strong>@(produtos?.Count ?? 0)</strong> registos.</span>
+
+        @* Filtro Categoria (Novo) *@
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Categoria</label>
+            <select class="form-select" @bind="categoriaFiltro">
+                <option value="0">-- Todas --</option>
+                @foreach (var cat in listaCategorias)
+                {
+                    <option value="@cat.Id">@cat.Nome</option>
+                }
+            </select>
+        </div>
+
+        @* Filtro Tipo (Novo: Venda vs Coleção) *@
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Tipo</label>
+            <select class="form-select" @bind="tipoFiltro">
+                <option value="Todos">Todos</option>
+                <option value="Venda">Para Venda</option>
+                <option value="Colecao">Apenas Coleção</option>
+            </select>
+        </div>
+
+        @* Botão Filtrar *@
+        <div class="col-md-3 align-self-end">
+            <button class="btn btn-primary w-100" @onclick="AplicarFiltrosExtra">
+                <i class="bi bi-search"></i> Aplicar Filtros
+            </button>
+        </div>
+
+        <div class="col-12 text-end">
+            <span class="text-muted small">
+                Total: <strong>@totalItens</strong> | Pág. <strong>@paginaAtual</strong> de <strong>@TotalPaginas</strong>
+            </span>
         </div>
     </div>
 </div>
 
 @if (produtos == null)
 {
-    <p><em>A carregar produtos...</em></p>
+    <div class="d-flex justify-content-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
 }
 else if (produtos.Count == 0)
 {
-    <div class="alert alert-warning">Não foram encontrados produtos com este filtro.</div>
+    <div class="alert alert-warning">Não foram encontrados produtos.</div>
 }
 else
 {
@@ -68,7 +101,7 @@ else
                 <th>Imagem</th>
                 <th>Nome</th>
                 <th>Categoria</th>
-                <th>Preço Venda</th>
+                <th>Preço</th>
                 <th>Estado</th>
                 <th>Modo</th>
                 <th class="text-end">Ações</th>
@@ -96,11 +129,11 @@ else
                             <span class="badge bg-info text-dark ms-1">Meu</span>
                         }
                     </td>
-                    <td>@p.Categoria?.Nome</td>
+                    <td>@(p.Categoria?.Nome ?? "-")</td>
                     <td>
                         @if (p.ParaVenda)
                         {
-                            <span>@p.PrecoVenda.ToString("C")</span>
+                            <span class="fw-bold text-success">@p.PrecoVenda.ToString("C")</span>
                         }
                         else
                         {
@@ -121,24 +154,56 @@ else
                         }
                     </td>
                     <td class="text-end">
-                        <a href="produtos/edit?id=@p.Id" class="btn btn-sm btn-outline-primary">Editar</a>
-                        <a href="produtos/delete?id=@p.Id" class="btn btn-sm btn-outline-danger ms-1">Apagar</a>
+                        <a href="produtos/edit?id=@p.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="produtos/delete?id=@p.Id" class="btn btn-sm btn-outline-danger ms-1">
+                            <i class="bi bi-trash"></i>
+                        </a>
                     </td>
                 </tr>
             }
         </tbody>
     </table>
+
+    @if (TotalPaginas > 1)
+    {
+        <nav aria-label="Navegação">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(paginaAtual == 1 ? "disabled" : "")">
+                    <button class="page-link" @onclick="PaginaAnterior">Anterior</button>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">@paginaAtual / @TotalPaginas</span>
+                </li>
+                <li class="page-item @(paginaAtual >= TotalPaginas ? "disabled" : "")">
+                    <button class="page-link" @onclick="ProximaPagina">Seguinte</button>
+                </li>
+            </ul>
+        </nav>
+    }
 }
 
 @code {
     private List<Produto>? produtos;
+    private List<Categoria> listaCategorias = new(); // Lista para a dropdown
+
+    // Filtros
     private string estadoFiltro = "Ativo";
+    private int categoriaFiltro = 0;
+    private string tipoFiltro = "Todos"; // Venda, Colecao, Todos
+
     private string? userId;
     private bool ehFornecedor;
 
+    // Paginação
+    private int paginaAtual = 1;
+    private const int tamanhoPagina = 10;
+    private int totalItens = 0;
+    private int TotalPaginas => (int)Math.Ceiling((double)totalItens / tamanhoPagina);
+
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA: PORTEIRO ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userPrincipal = authState.User;
         var userDb = await UserManager.GetUserAsync(userPrincipal);
@@ -148,10 +213,13 @@ else
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // ---------------------------
 
         userId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         ehFornecedor = userPrincipal.IsInRole("Fornecedor");
+
+        // Carregar lista de categorias para o filtro
+        using var context = DbFactory.CreateDbContext();
+        listaCategorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
 
         await CarregarProdutos();
     }
@@ -159,7 +227,31 @@ else
     private async Task FiltrarPorEstado(ChangeEventArgs e)
     {
         estadoFiltro = e.Value?.ToString() ?? "Todos";
+        await AplicarFiltrosExtra();
+    }
+
+    private async Task AplicarFiltrosExtra()
+    {
+        paginaAtual = 1;
         await CarregarProdutos();
+    }
+
+    private async Task PaginaAnterior()
+    {
+        if (paginaAtual > 1)
+        {
+            paginaAtual--;
+            await CarregarProdutos();
+        }
+    }
+
+    private async Task ProximaPagina()
+    {
+        if (paginaAtual < TotalPaginas)
+        {
+            paginaAtual++;
+            await CarregarProdutos();
+        }
     }
 
     private async Task CarregarProdutos()
@@ -169,20 +261,35 @@ else
             .Include(p => p.Categoria)
             .AsQueryable();
 
-        // (Opcional) Filtrar para Fornecedores verem apenas os seus
-        /*
-        if (ehFornecedor)
-        {
-             query = query.Where(p => p.FornecedorId == userId);
-        }
-        */
-
+        // Filtro Estado
         if (estadoFiltro != "Todos")
         {
             query = query.Where(p => p.Estado == estadoFiltro);
         }
 
-        produtos = await query.OrderByDescending(p => p.Id).ToListAsync();
+        // Filtro Categoria
+        if (categoriaFiltro > 0)
+        {
+            query = query.Where(p => p.CategoriaId == categoriaFiltro);
+        }
+
+        // Filtro Tipo (Venda vs Coleção)
+        if (tipoFiltro == "Venda")
+        {
+            query = query.Where(p => p.ParaVenda == true);
+        }
+        else if (tipoFiltro == "Colecao")
+        {
+            query = query.Where(p => p.ParaVenda == false);
+        }
+
+        // Paginação
+        totalItens = await query.CountAsync();
+        produtos = await query
+            .OrderByDescending(p => p.Id)
+            .Skip((paginaAtual - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .ToListAsync();
     }
 
     private string GetBadgeClass(string estado) => estado switch

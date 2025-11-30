@@ -4,6 +4,7 @@
 @using GestaoLoja.Data
 @using GestaoLoja.Entities
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.JSInterop
 
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
 
@@ -11,11 +12,41 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Gestão de Encomendas</PageTitle>
 
 <h1>Encomendas</h1>
+
+@* --- BARRA DE FILTROS (Ponto 2) --- *@
+<div class="card p-3 mb-4 bg-light">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Data Início</label>
+            <input type="date" class="form-control" @bind="FiltroDataInicio" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Data Fim</label>
+            <input type="date" class="form-control" @bind="FiltroDataFim" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Estado</label>
+            <select class="form-select" @bind="FiltroEstado">
+                <option value="Todos">Todos</option>
+                <option value="Pendente">Pendente</option>
+                <option value="Pago">Pago</option>
+                <option value="Enviado">Enviado</option>
+                <option value="Concluido">Concluído</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-primary w-100" @onclick="CarregarDados">
+                <i class="bi bi-search"></i> Filtrar
+            </button>
+        </div>
+    </div>
+</div>
 
 @if (encomendas == null)
 {
@@ -23,7 +54,7 @@
 }
 else if (!encomendas.Any())
 {
-    <div class="alert alert-info">Não há encomendas registadas.</div>
+    <div class="alert alert-info">Não foram encontradas encomendas com estes filtros.</div>
 }
 else
 {
@@ -56,14 +87,14 @@ else
                             Detalhes
                         </a>
 
-                        @* Lógica de mudança de estado (Aspas simples no onclick para permitir aspas duplas dentro) *@
+                        @* Botões de alteração de estado *@
                         @if (enc.Estado == "Pendente")
                         {
                             <button class="btn btn-sm btn-success ms-1" @onclick='() => MudarEstado(enc, "Pago")'>Marcar Pago</button>
                         }
                         else if (enc.Estado == "Pago")
                         {
-                            <button class="btn btn-sm btn-warning ms-1" @onclick='() => MudarEstado(enc, "Enviado")'>Enviar</button>
+                            <button class="btn btn-sm btn-warning ms-1" @onclick='() => MudarEstado(enc, "Enviado")'>Enviar (Stock)</button>
                         }
                         else if (enc.Estado == "Enviado")
                         {
@@ -79,9 +110,14 @@ else
 @code {
     private List<Encomenda>? encomendas;
 
+    // Variáveis para os Filtros
+    private DateTime? FiltroDataInicio;
+    private DateTime? FiltroDataFim;
+    private string FiltroEstado = "Todos";
+
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA ---
+        // Segurança
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -89,7 +125,6 @@ else
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // -----------------
 
         await CarregarDados();
     }
@@ -97,20 +132,72 @@ else
     private async Task CarregarDados()
     {
         using var context = DbFactory.CreateDbContext();
-        encomendas = await context.Encomendas
+
+        // Query Base
+        var query = context.Encomendas
             .Include(e => e.Cliente)
-            .OrderByDescending(e => e.Data)
-            .ToListAsync();
+            .AsQueryable();
+
+        // Aplicar Filtro de Estado
+        if (FiltroEstado != "Todos")
+        {
+            query = query.Where(e => e.Estado == FiltroEstado);
+        }
+
+        // Aplicar Filtro de Datas
+        if (FiltroDataInicio.HasValue)
+        {
+            query = query.Where(e => e.Data >= FiltroDataInicio.Value);
+        }
+        if (FiltroDataFim.HasValue)
+        {
+            // Adiciona 1 dia para incluir o próprio dia selecionado (até às 23:59)
+            var dataFim = FiltroDataFim.Value.AddDays(1);
+            query = query.Where(e => e.Data < dataFim);
+        }
+
+        encomendas = await query.OrderByDescending(e => e.Data).ToListAsync();
     }
 
+    // --- LÓGICA DE ATUALIZAÇÃO DE STOCK (Ponto 1) ---
     private async Task MudarEstado(Encomenda enc, string novoEstado)
     {
         using var context = DbFactory.CreateDbContext();
-        var encomendaDb = await context.Encomendas.FindAsync(enc.Id);
+
+        // Carregar a encomenda COM os itens e os produtos para mexer no stock
+        var encomendaDb = await context.Encomendas
+            .Include(e => e.Itens)
+            .ThenInclude(i => i.Produto)
+            .FirstOrDefaultAsync(e => e.Id == enc.Id);
+
         if (encomendaDb != null)
         {
+            // Se estamos a enviar, vamos descontar o stock
+            if (novoEstado == "Enviado" && encomendaDb.Estado != "Enviado" && encomendaDb.Estado != "Concluido")
+            {
+                // 1. Validação: Verificar se há stock suficiente para todos os itens
+                foreach (var item in encomendaDb.Itens)
+                {
+                    if (item.Produto.Stock < item.Quantidade)
+                    {
+                        await JS.InvokeVoidAsync("alert", $"Erro: Stock insuficiente para o produto '{item.Produto.Nome}'. Stock atual: {item.Produto.Stock}, Necessário: {item.Quantidade}.");
+                        return; // Cancela a operação
+                    }
+                }
+
+                // 2. Execução: Descontar stock
+                foreach (var item in encomendaDb.Itens)
+                {
+                    item.Produto.Stock -= item.Quantidade;
+                    // Opcional: Verificar se stock ficou a 0 e mudar estado do produto?
+                    // Para já, apenas subtrai.
+                }
+            }
+
             encomendaDb.Estado = novoEstado;
             await context.SaveChangesAsync();
+
+            // Recarregar lista para atualizar UI
             await CarregarDados();
         }
     }
