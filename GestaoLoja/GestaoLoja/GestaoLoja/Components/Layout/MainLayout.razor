@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @inject AuthenticationStateProvider AuthStateProvider
+@using GestaoLoja
 
 <div class="page">
     <div class="sidebar">
@@ -8,8 +9,7 @@
 
     <main>
         <div class="top-row px-4 d-flex justify-content-between">
-            <span class="fw-bold text-secondary">MyCOLL Gestão</span>
-
+            <span class="fw-bold text-secondary">@AppConfig.TituloBackoffice</span>
             <AuthorizeView>
                 <Authorized>
                     <span class="badge bg-light text-dark border">
