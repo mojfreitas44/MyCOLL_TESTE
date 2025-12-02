@@ -30,11 +30,9 @@
     </div>
 </div>
 
-@* --- BARRA DE FILTROS COMPLETA --- *@
+@* --- BARRA DE FILTROS --- *@
 <div class="card p-3 mb-4 bg-light">
     <div class="row g-3 align-items-center">
-
-        @* Filtro Estado *@
         <div class="col-md-3">
             <label class="form-label fw-bold">Estado</label>
             <select class="form-select" value="@estadoFiltro" @onchange="FiltrarPorEstado">
@@ -46,7 +44,6 @@
             </select>
         </div>
 
-        @* Filtro Categoria (Novo) *@
         <div class="col-md-3">
             <label class="form-label fw-bold">Categoria</label>
             <select class="form-select" @bind="categoriaFiltro">
@@ -58,7 +55,6 @@
             </select>
         </div>
 
-        @* Filtro Tipo (Novo: Venda vs Coleção) *@
         <div class="col-md-3">
             <label class="form-label fw-bold">Tipo</label>
             <select class="form-select" @bind="tipoFiltro">
@@ -68,7 +64,6 @@
             </select>
         </div>
 
-        @* Botão Filtrar *@
         <div class="col-md-3 align-self-end">
             <button class="btn btn-primary w-100" @onclick="AplicarFiltrosExtra">
                 <i class="bi bi-search"></i> Aplicar Filtros
@@ -153,12 +148,13 @@ else
                             <span class="badge bg-secondary"><i class="bi bi-collection"></i> Coleção</span>
                         }
                     </td>
+                    @* --- CORREÇÃO AQUI: Adicionado texto aos botões --- *@
                     <td class="text-end">
                         <a href="produtos/edit?id=@p.Id" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil"></i>
+                            <i class="bi bi-pencil"></i> Editar
                         </a>
                         <a href="produtos/delete?id=@p.Id" class="btn btn-sm btn-outline-danger ms-1">
-                            <i class="bi bi-trash"></i>
+                            <i class="bi bi-trash"></i> Apagar
                         </a>
                     </td>
                 </tr>
@@ -186,12 +182,12 @@ else
 
 @code {
     private List<Produto>? produtos;
-    private List<Categoria> listaCategorias = new(); // Lista para a dropdown
+    private List<Categoria> listaCategorias = new();
 
     // Filtros
     private string estadoFiltro = "Ativo";
     private int categoriaFiltro = 0;
-    private string tipoFiltro = "Todos"; // Venda, Colecao, Todos
+    private string tipoFiltro = "Todos";
 
     private string? userId;
     private bool ehFornecedor;
@@ -217,7 +213,6 @@ else
         userId = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         ehFornecedor = userPrincipal.IsInRole("Fornecedor");
 
-        // Carregar lista de categorias para o filtro
         using var context = DbFactory.CreateDbContext();
         listaCategorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
 
