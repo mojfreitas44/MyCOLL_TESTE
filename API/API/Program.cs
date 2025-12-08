@@ -1,5 +1,5 @@
-using GestaoLoja.Data;
-using GestaoLoja.Entities;
+using API.Data;
+using API.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

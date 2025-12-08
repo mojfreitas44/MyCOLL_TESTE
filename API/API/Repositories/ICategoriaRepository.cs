@@ -1,4 +1,4 @@
-﻿using GestaoLoja.Entities;
+﻿using API.Entities;
 
 namespace API.Repositories
 {

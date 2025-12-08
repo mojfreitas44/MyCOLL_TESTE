@@ -21,8 +21,4 @@
     <Folder Include="Repositories\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\GestaoLoja\GestaoLoja\GestaoLoja\GestaoLoja.csproj" />
-  </ItemGroup>
-
 </Project>

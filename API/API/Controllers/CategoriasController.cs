@@ -1,6 +1,6 @@
 ﻿using API.DTO;
-using GestaoLoja.Data;
-using GestaoLoja.Entities;
+using API.Data;
+using API.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;

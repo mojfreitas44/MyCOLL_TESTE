@@ -1,5 +1,5 @@
-﻿using GestaoLoja.Data;
-using GestaoLoja.Entities;
+﻿using API.Data;
+using API.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Repositories
