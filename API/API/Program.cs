@@ -1,4 +1,5 @@
 using API.Data;
+using API.Repositories;
 using API.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -10,64 +11,84 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configurar JSON para ignorar ciclos (Essencial para Categoria -> SubCategoria)
+// ==============================================================================
+// 1. CONFIGURAÇÃO DE CONTROLADORES E JSON
+// ==============================================================================
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
+    // Ignora ciclos (ex: Categoria -> SubCategoria -> CategoriaPai) para não bloquear o JSON
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
-// 2. Configurar Base de Dados (Usa a mesma connection string do GestaoLoja)
+// ==============================================================================
+// 2. CONFIGURAÇÃO DA BASE DE DADOS
+// ==============================================================================
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 3. Configurar Identity (Para gerir Users e Roles)
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+// ==============================================================================
+// 3. CONFIGURAÇÃO DO IDENTITY (LOGIN/USERS)
+// ==============================================================================
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequireDigit = false;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 3; // Simplificado para testes
+    options.User.RequireUniqueEmail = true;
 })
+.AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// 4. Configurar Autenticação JWT
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "ChaveSuperSecreta_MuitoLonga_Para_O_Trabalho_PWeb_2025";
-var key = Encoding.UTF8.GetBytes(jwtKey);
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
+// ==============================================================================
+// 4. AUTENTICAÇÃO JWT (TOKEN)
+// ==============================================================================
+var jwtKey = builder.Configuration["JWT:Key"] ?? "ChaveSuperSecretaDeDesenvolvimento123456789";
+var jwtIssuer = builder.Configuration["JWT:Issuer"] ?? "GestaoLojaApi";
+var jwtAudience = builder.Configuration["JWT:Audience"] ?? "GestaoLojaClient";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false, // Em prod deve ser true
-        ValidateAudience = false
-    };
-});
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
 
-// 5. Configurar Swagger com Suporte a JWT (Botão "Authorize")
+builder.Services.AddAuthorization();
+
+// ==============================================================================
+// 5. REGISTO DE REPOSITÓRIOS (DEPENDENCY INJECTION)
+// ==============================================================================
+builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
+builder.Services.AddScoped<ICarrinhoRepository, CarrinhoRepository>();
+
+// Se tiveres criado o ProdutoRepository, descomenta a linha abaixo:
+// builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
+
+// ==============================================================================
+// 6. SWAGGER COM SUPORTE A JWT (O CADEADO)
+// ==============================================================================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "MyCOLL API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "GestaoLoja API", Version = "v1" });
 
-    // Configuração para o botão de cadeado no Swagger
+    // Configuração para aparecer o botão "Authorize" no Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Insira o token JWT desta forma: Bearer {seu token}",
+        Description = "Insira o token JWT desta forma: Bearer {seu_token}",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -85,12 +106,14 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
 
-// 6. Configurar CORS (Para o Frontend Blazor/Mobile aceder)
+// ==============================================================================
+// 7. CORS (PERMITIR ACESSO DO FRONTEND)
+// ==============================================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -103,7 +126,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Pipeline de Pedidos HTTP
+// ==============================================================================
+// PIPELINE DE EXECUÇÃO
+// ==============================================================================
+
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -111,12 +138,20 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
-app.UseCors("AllowAll"); // Ativar CORS
+app.UseRouting();
 
-app.UseAuthentication(); // <--- OBRIGATÓRIO: Antes do Authorization
+// Ativar CORS
+app.UseCors("AllowAll");
+
+// Ativar Autenticação e Autorização (A ordem importa!)
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Endpoints padrão do Identity (opcional, se usares os teus próprios controladores podes remover)
+app.MapGroup("/identity").MapIdentityApi<ApplicationUser>();
 
 app.Run();

@@ -11,6 +11,7 @@ namespace API.Entities // <--- Namespace da API
         [Required]
         public string Nome { get; set; } = string.Empty;
         public string Descricao { get; set; } = string.Empty;
+        [Column(TypeName = "decimal(18, 2)")]
         public decimal PrecoVenda { get; set; }
         public byte[]? Imagem { get; set; }
         public bool ParaVenda { get; set; } = true;
