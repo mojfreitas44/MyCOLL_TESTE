@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using API.Data; // <--- Importante: Aponta para o User local
+using API.Data;
 
-namespace API.Entities // <--- Namespace da API
+namespace API.Entities
 {
     public class Produto
     {
@@ -11,8 +11,17 @@ namespace API.Entities // <--- Namespace da API
         [Required]
         public string Nome { get; set; } = string.Empty;
         public string Descricao { get; set; } = string.Empty;
+
+        // --- CAMPOS QUE FALTAVAM ---
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal PrecoVenda { get; set; }
+        public decimal PrecoBase { get; set; } // Preço de Custo (Obrigatório na BD)
+
+        public int Stock { get; set; } // Quantidade (Obrigatório na BD)
+        // ---------------------------
+
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal PrecoVenda { get; set; } // Preço ao Público
+
         public byte[]? Imagem { get; set; }
         public bool ParaVenda { get; set; } = true;
         public string Condicao { get; set; } = "Usado";

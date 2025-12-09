@@ -1,8 +1,7 @@
 ﻿using API.Data;
-using API.Entities; // Caso tenhas movido o User para aqui, senão remove
+using API.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -15,17 +14,17 @@ namespace API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
+        // REMOVIDO: private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _config;
 
+        // REMOVIDO o SignInManager daqui dos parenteses
         public AuthController(
             IConfiguration config,
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            UserManager<ApplicationUser> userManager)
         {
             _config = config;
             _userManager = userManager;
-            _signInManager = signInManager;
+            // REMOVIDO: _signInManager = signInManager;
         }
 
         // POST: api/Auth/Login
@@ -39,9 +38,11 @@ namespace API.Controllers
             if (user == null)
                 return BadRequest("Utilizador não encontrado.");
 
-            // Validar Password
-            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
-            if (!result.Succeeded)
+            // --- ALTERAÇÃO AQUI ---
+            // Em vez de _signInManager, usamos o _userManager para ver se a pass bate certo
+            var passwordValida = await _userManager.CheckPasswordAsync(user, model.Password);
+
+            if (!passwordValida)
                 return BadRequest("Login inválido.");
 
             // Validar se está ativo (regra de negócio)
@@ -53,13 +54,17 @@ namespace API.Controllers
             // Gerar Token
             var token = GenerateToken(user);
 
+            // Obter a Role para enviar na resposta
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "Cliente";
+
             return Ok(new
             {
                 accesstoken = token,
                 tokentype = "bearer",
                 utilizadorid = user.Id,
                 utilizadornome = user.Nome,
-                role = (await _userManager.GetRolesAsync(user)).FirstOrDefault(),
+                role = role,
                 estado = user.Estado
             });
         }
@@ -90,7 +95,7 @@ namespace API.Controllers
                 Cidade = model.Cidade,
                 Pais = model.Pais,
 
-                Estado = "Pendente",
+                Estado = "Ativo", // Cria logo como Ativo para não teres de ir à BD
                 DataRegisto = DateTime.UtcNow
             };
 
@@ -103,7 +108,7 @@ namespace API.Controllers
             var role = model.Role.ToLower() == "fornecedor" ? "Fornecedor" : "Cliente";
             await _userManager.AddToRoleAsync(user, role);
 
-            return Created("Register", "Registo efetuado! Aguarde aprovação.");
+            return Created("Register", "Registo efetuado!");
         }
 
         private string GenerateToken(ApplicationUser user)

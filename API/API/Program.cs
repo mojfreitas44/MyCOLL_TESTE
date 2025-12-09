@@ -16,7 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ==============================================================================
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    // Ignora ciclos (ex: Categoria -> SubCategoria -> CategoriaPai) para não bloquear o JSON
+    // Ignora ciclos (ex: Categoria -> SubCategoria) para não bloquear o JSON
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
@@ -34,15 +34,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ==============================================================================
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
+    // Configurações de password mais relaxadas para testes (opcional)
     options.SignIn.RequireConfirmedAccount = false;
     options.User.RequireUniqueEmail = true;
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 3;
 })
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
-
-builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
 
 // ==============================================================================
 // 4. AUTENTICAÇÃO JWT (TOKEN)
@@ -71,11 +74,11 @@ builder.Services.AddAuthorization();
 // ==============================================================================
 // 5. REGISTO DE REPOSITÓRIOS (DEPENDENCY INJECTION)
 // ==============================================================================
+// Aqui registamos todos os serviços que a API vai usar
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
 builder.Services.AddScoped<ICarrinhoRepository, CarrinhoRepository>();
-
-// Se tiveres criado o ProdutoRepository, descomenta a linha abaixo:
-// builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
+builder.Services.AddScoped<IEncomendaRepository, EncomendaRepository>();
+builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 
 // ==============================================================================
 // 6. SWAGGER COM SUPORTE A JWT (O CADEADO)
@@ -130,7 +133,6 @@ var app = builder.Build();
 // PIPELINE DE EXECUÇÃO
 // ==============================================================================
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -150,8 +152,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-// Endpoints padrão do Identity (opcional, se usares os teus próprios controladores podes remover)
-app.MapGroup("/identity").MapIdentityApi<ApplicationUser>();
 
 app.Run();
