@@ -45,11 +45,13 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Categoria Pai</label>
+                    @* O segredo para int? funcionar bem é tratar o valor vazio como null *@
                     <InputSelect @bind-Value="Categoria.CategoriaPaiId" class="form-select">
                         <option value="">-- Nenhuma (Topo) --</option>
                         @foreach (var cat in listaCategorias)
                         {
-                            if (cat.Id != Categoria.Id) // Não pode ser pai de si mesma
+                            // Evita que uma categoria seja pai de si mesma (ciclo infinito)
+                            if (cat.Id != Categoria.Id)
                             {
                                 <option value="@cat.Id">@cat.Nome</option>
                             }
@@ -98,19 +100,21 @@ else
     private async Task AtualizarCategoria()
     {
         using var context = DbFactory.CreateDbContext();
-        context.Attach(Categoria!).State = EntityState.Modified;
 
-        try
+        // 1. Buscar a versão ORIGINAL da base de dados
+        var categoriaDb = await context.Categorias.FindAsync(Categoria!.Id);
+
+        if (categoriaDb != null)
         {
+            // 2. Copiar os valores novos para o objeto da BD
+            categoriaDb.Nome = Categoria.Nome;
+            categoriaDb.Descricao = Categoria.Descricao;
+            categoriaDb.CategoriaPaiId = Categoria.CategoriaPaiId; // <--- AQUI É QUE A MAGIA ACONTECE
+
+            // 3. Gravar
             await context.SaveChangesAsync();
-            NavigationManager.NavigateTo("categorias");
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!context.Categorias.Any(e => e.Id == Categoria!.Id))
-                NavigationManager.NavigateTo("categorias");
-            else
-                throw;
-        }
+
+        NavigationManager.NavigateTo("categorias");
     }
 }
