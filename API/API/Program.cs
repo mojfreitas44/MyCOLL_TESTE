@@ -79,7 +79,7 @@ builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
 builder.Services.AddScoped<ICarrinhoRepository, CarrinhoRepository>();
 builder.Services.AddScoped<IEncomendaRepository, EncomendaRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
-
+builder.Services.AddScoped<IModoEntregaRepository, ModoEntregaRepository>();
 // ==============================================================================
 // 6. SWAGGER COM SUPORTE A JWT (O CADEADO)
 // ==============================================================================
