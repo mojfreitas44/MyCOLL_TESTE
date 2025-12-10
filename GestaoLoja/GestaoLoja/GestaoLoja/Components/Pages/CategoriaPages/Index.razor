@@ -61,14 +61,26 @@ else
             }
         </tbody>
     </table>
+
+    @* --- BOTÕES DE PAGINAÇÃO --- *@
+    <div class="d-flex justify-content-center mt-3">
+        <button class="btn btn-outline-primary me-2" @onclick="PaginaAnterior" disabled="@(PaginaAtual == 1)">Anterior</button>
+        <span class="align-self-center">Página @PaginaAtual de @TotalPaginas</span>
+        <button class="btn btn-outline-primary ms-2" @onclick="ProximaPagina" disabled="@(PaginaAtual >= TotalPaginas)">Seguinte</button>
+    </div>
 }
 
 @code {
     private List<Categoria>? categorias;
 
+    // Paginação
+    private int PaginaAtual = 1;
+    private const int TamanhoPagina = 10;
+    private int TotalItens = 0;
+    private int TotalPaginas => (int)Math.Ceiling((double)TotalItens / TamanhoPagina);
+
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA: Verificar se está ATIVO ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -76,13 +88,44 @@ else
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // ------------------------------------------
 
+        await CarregarDados();
+    }
+
+    private async Task CarregarDados()
+    {
         using var context = DbFactory.CreateDbContext();
-        categorias = await context.Categorias
+
+        var query = context.Categorias
             .Include(c => c.CategoriaPai)
             .OrderBy(c => c.CategoriaPaiId)
-            .ThenBy(c => c.Nome)
+            .ThenBy(c => c.Nome);
+
+        // Contar total
+        TotalItens = await query.CountAsync();
+
+        // Buscar página
+        categorias = await query
+            .Skip((PaginaAtual - 1) * TamanhoPagina)
+            .Take(TamanhoPagina)
             .ToListAsync();
+    }
+
+    private async Task PaginaAnterior()
+    {
+        if (PaginaAtual > 1)
+        {
+            PaginaAtual--;
+            await CarregarDados();
+        }
+    }
+
+    private async Task ProximaPagina()
+    {
+        if (PaginaAtual < TotalPaginas)
+        {
+            PaginaAtual++;
+            await CarregarDados();
+        }
     }
 }

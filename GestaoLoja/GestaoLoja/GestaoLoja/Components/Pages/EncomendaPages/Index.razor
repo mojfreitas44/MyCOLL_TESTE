@@ -19,7 +19,6 @@
 
 <h1>Encomendas</h1>
 
-@* --- BARRA DE FILTROS (Ponto 2) --- *@
 <div class="card p-3 mb-4 bg-light">
     <div class="row g-3 align-items-end">
         <div class="col-md-3">
@@ -41,7 +40,7 @@
             </select>
         </div>
         <div class="col-md-3">
-            <button class="btn btn-primary w-100" @onclick="CarregarDados">
+            <button class="btn btn-primary w-100" @onclick="AplicarFiltros">
                 <i class="bi bi-search"></i> Filtrar
             </button>
         </div>
@@ -86,8 +85,6 @@ else
                         <a href="encomendas/details?id=@enc.Id" class="btn btn-sm btn-outline-info">
                             Detalhes
                         </a>
-
-                        @* Botões de alteração de estado *@
                         @if (enc.Estado == "Pendente")
                         {
                             <button class="btn btn-sm btn-success ms-1" @onclick='() => MudarEstado(enc, "Pago")'>Marcar Pago</button>
@@ -105,19 +102,31 @@ else
             }
         </tbody>
     </table>
+
+    @* --- PAGINAÇÃO --- *@
+    <div class="d-flex justify-content-center mt-3">
+        <button class="btn btn-outline-primary me-2" @onclick="PaginaAnterior" disabled="@(PaginaAtual == 1)">Anterior</button>
+        <span class="align-self-center">Página @PaginaAtual de @TotalPaginas</span>
+        <button class="btn btn-outline-primary ms-2" @onclick="ProximaPagina" disabled="@(PaginaAtual >= TotalPaginas)">Seguinte</button>
+    </div>
 }
 
 @code {
     private List<Encomenda>? encomendas;
 
-    // Variáveis para os Filtros
+    // Filtros
     private DateTime? FiltroDataInicio;
     private DateTime? FiltroDataFim;
     private string FiltroEstado = "Todos";
 
+    // Paginação
+    private int PaginaAtual = 1;
+    private const int TamanhoPagina = 10;
+    private int TotalItens = 0;
+    private int TotalPaginas => (int)Math.Ceiling((double)TotalItens / TamanhoPagina);
+
     protected override async Task OnInitializedAsync()
     {
-        // Segurança
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -125,46 +134,69 @@ else
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
+        await CarregarDados();
+    }
 
+    private async Task AplicarFiltros()
+    {
+        PaginaAtual = 1; // Reset da página ao filtrar
         await CarregarDados();
     }
 
     private async Task CarregarDados()
     {
         using var context = DbFactory.CreateDbContext();
-
-        // Query Base
         var query = context.Encomendas
             .Include(e => e.Cliente)
             .AsQueryable();
 
-        // Aplicar Filtro de Estado
         if (FiltroEstado != "Todos")
         {
             query = query.Where(e => e.Estado == FiltroEstado);
         }
 
-        // Aplicar Filtro de Datas
         if (FiltroDataInicio.HasValue)
         {
             query = query.Where(e => e.Data >= FiltroDataInicio.Value);
         }
         if (FiltroDataFim.HasValue)
         {
-            // Adiciona 1 dia para incluir o próprio dia selecionado (até às 23:59)
             var dataFim = FiltroDataFim.Value.AddDays(1);
             query = query.Where(e => e.Data < dataFim);
         }
 
-        encomendas = await query.OrderByDescending(e => e.Data).ToListAsync();
+        // 1. Contar (considerando os filtros)
+        TotalItens = await query.CountAsync();
+
+        // 2. Buscar Página
+        encomendas = await query
+            .OrderByDescending(e => e.Data)
+            .Skip((PaginaAtual - 1) * TamanhoPagina)
+            .Take(TamanhoPagina)
+            .ToListAsync();
     }
 
-    // --- LÓGICA DE ATUALIZAÇÃO DE STOCK (Ponto 1) ---
+    private async Task PaginaAnterior()
+    {
+        if (PaginaAtual > 1)
+        {
+            PaginaAtual--;
+            await CarregarDados();
+        }
+    }
+
+    private async Task ProximaPagina()
+    {
+        if (PaginaAtual < TotalPaginas)
+        {
+            PaginaAtual++;
+            await CarregarDados();
+        }
+    }
+
     private async Task MudarEstado(Encomenda enc, string novoEstado)
     {
         using var context = DbFactory.CreateDbContext();
-
-        // Carregar a encomenda COM os itens e os produtos para mexer no stock
         var encomendaDb = await context.Encomendas
             .Include(e => e.Itens)
             .ThenInclude(i => i.Produto)
@@ -172,32 +204,24 @@ else
 
         if (encomendaDb != null)
         {
-            // Se estamos a enviar, vamos descontar o stock
             if (novoEstado == "Enviado" && encomendaDb.Estado != "Enviado" && encomendaDb.Estado != "Concluido")
             {
-                // 1. Validação: Verificar se há stock suficiente para todos os itens
                 foreach (var item in encomendaDb.Itens)
                 {
                     if (item.Produto.Stock < item.Quantidade)
                     {
-                        await JS.InvokeVoidAsync("alert", $"Erro: Stock insuficiente para o produto '{item.Produto.Nome}'. Stock atual: {item.Produto.Stock}, Necessário: {item.Quantidade}.");
-                        return; // Cancela a operação
+                        await JS.InvokeVoidAsync("alert", $"Erro: Stock insuficiente para '{item.Produto.Nome}'. Stock: {item.Produto.Stock}.");
+                        return;
                     }
                 }
-
-                // 2. Execução: Descontar stock
                 foreach (var item in encomendaDb.Itens)
                 {
                     item.Produto.Stock -= item.Quantidade;
-                    // Opcional: Verificar se stock ficou a 0 e mudar estado do produto?
-                    // Para já, apenas subtrai.
                 }
             }
 
             encomendaDb.Estado = novoEstado;
             await context.SaveChangesAsync();
-
-            // Recarregar lista para atualizar UI
             await CarregarDados();
         }
     }

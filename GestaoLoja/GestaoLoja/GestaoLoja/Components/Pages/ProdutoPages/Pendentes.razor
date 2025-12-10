@@ -9,7 +9,6 @@
 @attribute [Authorize(Roles = "Administrador,Funcionario")]
 
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
-@* --- INJEÇÕES NOVAS PARA SEGURANÇA --- *@
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
@@ -24,38 +23,49 @@
 }
 else if (!pendentes.Any())
 {
-    <div class="alert alert-info">Nada para aprovar.</div>
+    <div class="alert alert-success">
+        Tudo limpo! Não há produtos pendentes.
+    </div>
 }
 else
 {
     <table class="table align-middle table-hover">
-        <thead>
+        <thead class="table-dark">
             <tr>
                 <th>Imagem</th>
                 <th>Artigo</th>
                 <th>Preço Base</th>
                 <th>Margem (%)</th>
                 <th>Preço Final</th>
-                <th>Ações</th>
+                <th class="text-end">Ações</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var p in pendentes)
             {
-                // Lógica local para a margem
-                var margem = margens.ContainsKey(p.Id) ? margens[p.Id] : 20; // 20% default
+                var margem = margens.ContainsKey(p.Id) ? margens[p.Id] : 20;
                 var precoFinal = p.PrecoBase + (p.PrecoBase * (margem / 100));
 
                 <tr>
                     <td>
-                        @if (p.Imagem != null)
+                        @* --- CORREÇÃO AQUI (data:image/png) --- *@
+                        @if (p.Imagem != null && p.Imagem.Length > 0)
                         {
-                            <img src="data:image;base64,@Convert.ToBase64String(p.Imagem)" width="50" class="img-thumbnail" />
+                            <img src="data:image/png;base64,@Convert.ToBase64String(p.Imagem)"
+                                 class="img-thumbnail"
+                                 style="width: 50px; height: 50px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <span class="text-muted small">Sem foto</span>
                         }
                     </td>
                     <td>
                         <strong>@p.Nome</strong><br />
-                        <small class="text-muted">@p.Categoria?.Nome</small>
+                        <small class="text-muted">@(p.Categoria?.Nome ?? "Sem Categoria")</small>
+                        <br />
+                        @* Mostra quem criou o produto *@
+                        <small class="text-secondary">Forn: @(p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido")</small>
                     </td>
                     <td>@p.PrecoBase.ToString("C")</td>
                     <td style="width:120px">
@@ -64,7 +74,7 @@ else
                                @onchange="@(e => AtualizarMargem(p.Id, e.Value))" />
                     </td>
                     <td class="fw-bold text-success">@precoFinal.ToString("C")</td>
-                    <td>
+                    <td class="text-end">
                         <button class="btn btn-sm btn-success" @onclick="() => Aprovar(p)">Aprovar</button>
                         <button class="btn btn-sm btn-danger" @onclick="() => Rejeitar(p)">Recusar</button>
                     </td>
@@ -72,25 +82,35 @@ else
             }
         </tbody>
     </table>
+
+    @* --- PAGINAÇÃO --- *@
+    <div class="d-flex justify-content-center mt-3">
+        <button class="btn btn-outline-primary me-2" @onclick="PaginaAnterior" disabled="@(PaginaAtual == 1)">Anterior</button>
+        <span class="align-self-center">Página @PaginaAtual de @TotalPaginas</span>
+        <button class="btn btn-outline-primary ms-2" @onclick="ProximaPagina" disabled="@(PaginaAtual >= TotalPaginas)">Seguinte</button>
+    </div>
 }
 
 @code {
     private List<Produto>? pendentes;
     private Dictionary<int, decimal> margens = new();
 
+    // Paginação
+    private int PaginaAtual = 1;
+    private const int TamanhoPagina = 10;
+    private int TotalItens = 0;
+    private int TotalPaginas => (int)Math.Ceiling((double)TotalItens / TamanhoPagina);
+
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA: Verificar se está ATIVO ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
 
-        // Se não existir ou não estiver Ativo -> RUA!
         if (userDb == null || userDb.Estado != "Ativo")
         {
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // ------------------------------------------
 
         await CarregarDados();
     }
@@ -98,17 +118,37 @@ else
     private async Task CarregarDados()
     {
         using var context = DbFactory.CreateDbContext();
-        pendentes = await context.Produtos
+        var query = context.Produtos
             .Include(p => p.Categoria)
             .Include(p => p.Fornecedor)
-            .Where(p => p.Estado == "Pendente")
+            .Where(p => p.Estado == "Pendente");
+
+        // 1. Contar total
+        TotalItens = await query.CountAsync();
+
+        // 2. Buscar página
+        pendentes = await query
+            .OrderBy(p => p.Id)
+            .Skip((PaginaAtual - 1) * TamanhoPagina)
+            .Take(TamanhoPagina)
             .ToListAsync();
 
-        // Inicializa dicionário de margens
+        // Inicializar margens
+        margens.Clear();
         foreach (var p in pendentes)
         {
-            if (!margens.ContainsKey(p.Id)) margens[p.Id] = 20;
+            margens[p.Id] = 20;
         }
+    }
+
+    private async Task PaginaAnterior()
+    {
+        if (PaginaAtual > 1) { PaginaAtual--; await CarregarDados(); }
+    }
+
+    private async Task ProximaPagina()
+    {
+        if (PaginaAtual < TotalPaginas) { PaginaAtual++; await CarregarDados(); }
     }
 
     private void AtualizarMargem(int id, object? val)
@@ -123,9 +163,10 @@ else
     {
         using var context = DbFactory.CreateDbContext();
         var prod = await context.Produtos.FindAsync(p.Id);
+
         if (prod != null)
         {
-            decimal m = margens[p.Id];
+            decimal m = margens.ContainsKey(p.Id) ? margens[p.Id] : 20;
             prod.PrecoVenda = prod.PrecoBase + (prod.PrecoBase * (m / 100));
             prod.Estado = "Ativo";
 
@@ -138,9 +179,9 @@ else
     {
         using var context = DbFactory.CreateDbContext();
         var prod = await context.Produtos.FindAsync(p.Id);
+
         if (prod != null)
         {
-            // Podes mudar o estado ou apagar
             prod.Estado = "Rejeitado";
             await context.SaveChangesAsync();
             await CarregarDados();

@@ -145,7 +145,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA: PORTEIRO ---
+        // --- SEGURANÇA ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -153,7 +153,7 @@ else
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // ---------------------------
+        // -----------------
 
         using var context = DbFactory.CreateDbContext();
         categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
@@ -176,6 +176,8 @@ else
                 using var stream = ficheiro.OpenReadStream(maxTamanho);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
+
+                // Atualiza o objeto do formulário para mostrar a preview
                 Produto!.Imagem = ms.ToArray();
                 Produto.ImagemUrl = ficheiro.Name;
             }
@@ -189,38 +191,63 @@ else
     private async Task AtualizarProduto()
     {
         mensagemErro = null;
-        using var context = DbFactory.CreateDbContext();
 
+        // 1. Validar utilizador
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         bool isAdminOrStaff = user.IsInRole("Administrador") || user.IsInRole("Funcionario");
 
+        using var context = DbFactory.CreateDbContext();
+
+        // 2. BUSCAR O ORIGINAL À BD (A maneira correta!)
+        var produtoDb = await context.Produtos.FindAsync(Produto!.Id);
+
+        if (produtoDb is null)
+        {
+            NavigationManager.NavigateTo("produtos");
+            return;
+        }
+
+        // 3. COPIAR VALORES NOVOS PARA O ORIGINAL
+        // Assim o EF sabe exatamente o que mudou e não se perde.
+        produtoDb.Nome = Produto.Nome;
+        produtoDb.Descricao = Produto.Descricao;
+        produtoDb.CategoriaId = Produto.CategoriaId;
+        produtoDb.PrecoBase = Produto.PrecoBase;
+        produtoDb.Stock = Produto.Stock;
+        produtoDb.ParaVenda = Produto.ParaVenda;
+
+        // Copiar imagem (seja a antiga ou a nova carregada)
+        produtoDb.Imagem = Produto.Imagem;
+        produtoDb.ImagemUrl = Produto.ImagemUrl;
+
+        // 4. Lógica de Negócio (Roles e Preços)
         if (!isAdminOrStaff)
         {
-            Produto!.Estado = "Pendente";
+            // Fornecedor: Volta a pendente
+            produtoDb.Estado = "Pendente";
         }
         else
         {
-            if (Produto!.PrecoVenda < Produto.PrecoBase)
+            // Admin: Pode definir preço final e estado
+            if (Produto.PrecoVenda < Produto.PrecoBase)
             {
                 mensagemErro = $"Erro: O Preço de Venda ({Produto.PrecoVenda:C}) não pode ser inferior ao Preço Base ({Produto.PrecoBase:C}).";
                 return;
             }
+            produtoDb.PrecoVenda = Produto.PrecoVenda;
+            produtoDb.Estado = Produto.Estado;
         }
 
-        context.Attach(Produto!).State = EntityState.Modified;
-
+        // 5. Gravar
         try
         {
             await context.SaveChangesAsync();
             NavigationManager.NavigateTo("produtos");
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex)
         {
-            if (!context.Produtos.Any(e => e.Id == Produto!.Id))
-                NavigationManager.NavigateTo("produtos");
-            else
-                throw;
+            mensagemErro = "Erro ao atualizar: " + ex.Message;
         }
     }
 }
