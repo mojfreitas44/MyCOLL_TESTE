@@ -56,8 +56,16 @@ namespace API.Controllers
             if (user == null || user.Estado != "Ativo")
                 return StatusCode(403, "Conta não ativa.");
 
-            await _carrinhoRepository.AdicionarItem(userId, dto.ProdutoId, dto.Quantidade);
-            return Ok("Adicionado ao carrinho");
+            try
+            {
+                await _carrinhoRepository.AdicionarItem(userId, dto.ProdutoId, dto.Quantidade);
+                return Ok("Adicionado ao carrinho");
+            }
+            catch (Exception ex)
+            {
+                // Devolve erro 400 se o stock for insuficiente
+                return BadRequest(ex.Message);
+            }
         }
 
         // PUT: api/Carrinho/produto/1/quantidade (Body: 5)
@@ -67,8 +75,16 @@ namespace API.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Unauthorized();
 
-            await _carrinhoRepository.AtualizarQuantidade(userId, produtoId, quantidade);
-            return NoContent();
+            try
+            {
+                await _carrinhoRepository.AtualizarQuantidade(userId, produtoId, quantidade);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                // Devolve erro 400 se o stock for insuficiente
+                return BadRequest(ex.Message);
+            }
         }
 
         // DELETE: api/Carrinho/produto/1

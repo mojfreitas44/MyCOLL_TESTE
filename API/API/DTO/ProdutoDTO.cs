@@ -16,5 +16,6 @@
         public string? CategoriaNome { get; set; }
         public int CategoriaId { get; set; }
         public string? FornecedorNome { get; set; }
+        public string? Disponibilidade { get; set; } = string.Empty;
     }
 }

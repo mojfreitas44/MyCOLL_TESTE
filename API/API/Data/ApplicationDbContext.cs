@@ -15,7 +15,7 @@ namespace API.Data
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
         public DbSet<CarrinhoCompras> CarrinhoCompras { get; set; }
-        public DbSet<ModoEntrega> ModoEntrega { get; set; }        
+        public DbSet<ModoEntrega> ModosEntrega { get; set; }        
         public DbSet<Encomenda> Encomendas { get; set; } 
 
     }

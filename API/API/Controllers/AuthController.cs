@@ -104,9 +104,9 @@ namespace API.Controllers
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            // Atribuir Role (Cliente ou Fornecedor)
-            var role = model.Role.ToLower() == "fornecedor" ? "Fornecedor" : "Cliente";
-            await _userManager.AddToRoleAsync(user, role);
+            // Atribuir Role (Cliente).
+            //var role = model.Role.ToLower() == "fornecedor" ? "Fornecedor" : "Cliente";
+            await _userManager.AddToRoleAsync(user, "Cliente");
 
             return Created("Register", "Registo efetuado!");
         }
@@ -156,7 +156,7 @@ namespace API.Controllers
             public string CodigoPostal { get; set; } = string.Empty;
             public string Cidade { get; set; } = string.Empty;
             public string Pais { get; set; } = string.Empty;
-            public string Role { get; set; } = "Cliente";
+            //public string Role { get; set; } = "Cliente";
         }
     }
 }

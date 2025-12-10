@@ -33,15 +33,15 @@ namespace API.Controllers
                 Id = p.Id,
                 Nome = p.Nome,
                 Descricao = p.Descricao,
-
-                // AQUI: Usamos PrecoVenda em ambos os lados
                 PrecoVenda = p.PrecoVenda,
-
                 Condicao = p.Condicao,
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
                 FornecedorNome = p.Fornecedor?.Nome,
-                Imagem = p.Imagem
+                Imagem = p.Imagem,
+
+                Disponibilidade = p.Stock <= 0 ? "Esgotado" :
+                                  p.Stock < 5 ? "Últimas Unidades!" : "Em Stock"
             });
 
             return Ok(dtos);

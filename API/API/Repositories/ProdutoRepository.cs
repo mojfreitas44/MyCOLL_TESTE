@@ -17,8 +17,8 @@ namespace API.Repositories
         {
             var query = _context.Produtos
                 .AsNoTracking()
-                .Where(p => p.ParaVenda == true) 
-                .Where(p => p.Estado == "Aprovado");
+                .Where(p => p.ParaVenda == true)
+                .Where(p => p.Estado == "Ativo"); // <--- MUDANÇA AQUI (Era "Aprovado")
 
             if (!string.IsNullOrEmpty(pesquisa))
             {

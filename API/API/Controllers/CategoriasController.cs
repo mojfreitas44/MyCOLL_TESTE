@@ -29,7 +29,7 @@ namespace API.Controllers
         {
             // 1. Contagens (Apenas produtos ParaVenda)
             var counts = await _ctx.Produtos
-                .Where(p => p.ParaVenda == true)
+                .Where(p => p.ParaVenda == true && p.Estado == "Ativo")
                 .GroupBy(p => p.CategoriaId)
                 .Select(g => new { g.Key, Total = g.Count() })
                 .ToDictionaryAsync(x => x.Key, x => x.Total);

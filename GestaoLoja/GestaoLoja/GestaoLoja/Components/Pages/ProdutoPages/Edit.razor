@@ -62,7 +62,15 @@ else
                             <img src="data:image;base64,@Convert.ToBase64String(Produto.Imagem)" style="max-width: 200px; border-radius: 5px;" />
                         </div>
                     }
-                    <InputFile OnChange="CarregarImagem" class="form-control" accept=".png,.jpg,.jpeg" />
+                    <div class="input-group">
+                        <InputFile @key="inputKey" OnChange="CarregarImagem" class="form-control" accept=".png,.jpg,.jpeg" />
+                        @if (Produto.Imagem != null)
+                        {
+                            <button class="btn btn-outline-danger fw-bold" type="button" @onclick="RemoverImagem" title="Remover Imagem">
+                                X
+                            </button>
+                        }
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -139,13 +147,16 @@ else
     [SupplyParameterFromForm]
     public Produto? Produto { get; set; }
 
+    // Chave para limpar a barra visualmente
+    private Guid inputKey = Guid.NewGuid();
+
     private List<Categoria> categorias = new();
     private string? erroImagem;
     private string? mensagemErro;
 
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA ---
+        // --- SEGURANÇA: PORTEIRO ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -153,7 +164,7 @@ else
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
-        // -----------------
+        // ---------------------------
 
         using var context = DbFactory.CreateDbContext();
         categorias = await context.Categorias.OrderBy(c => c.Nome).ToListAsync();
@@ -164,6 +175,18 @@ else
             if (Produto is null) NavigationManager.NavigateTo("produtos");
         }
     }
+
+    // --- NOVA FUNÇÃO DE REMOVER ---
+    private void RemoverImagem()
+    {
+        if (Produto != null)
+        {
+            Produto.Imagem = null;
+            Produto.ImagemUrl = null;
+            inputKey = Guid.NewGuid(); // Reseta a barra visualmente
+        }
+    }
+    // ------------------------------
 
     private async Task CarregarImagem(InputFileChangeEventArgs e)
     {
@@ -176,8 +199,6 @@ else
                 using var stream = ficheiro.OpenReadStream(maxTamanho);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
-
-                // Atualiza o objeto do formulário para mostrar a preview
                 Produto!.Imagem = ms.ToArray();
                 Produto.ImagemUrl = ficheiro.Name;
             }
@@ -191,63 +212,38 @@ else
     private async Task AtualizarProduto()
     {
         mensagemErro = null;
+        using var context = DbFactory.CreateDbContext();
 
-        // 1. Validar utilizador
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         bool isAdminOrStaff = user.IsInRole("Administrador") || user.IsInRole("Funcionario");
 
-        using var context = DbFactory.CreateDbContext();
-
-        // 2. BUSCAR O ORIGINAL À BD (A maneira correta!)
-        var produtoDb = await context.Produtos.FindAsync(Produto!.Id);
-
-        if (produtoDb is null)
-        {
-            NavigationManager.NavigateTo("produtos");
-            return;
-        }
-
-        // 3. COPIAR VALORES NOVOS PARA O ORIGINAL
-        // Assim o EF sabe exatamente o que mudou e não se perde.
-        produtoDb.Nome = Produto.Nome;
-        produtoDb.Descricao = Produto.Descricao;
-        produtoDb.CategoriaId = Produto.CategoriaId;
-        produtoDb.PrecoBase = Produto.PrecoBase;
-        produtoDb.Stock = Produto.Stock;
-        produtoDb.ParaVenda = Produto.ParaVenda;
-
-        // Copiar imagem (seja a antiga ou a nova carregada)
-        produtoDb.Imagem = Produto.Imagem;
-        produtoDb.ImagemUrl = Produto.ImagemUrl;
-
-        // 4. Lógica de Negócio (Roles e Preços)
         if (!isAdminOrStaff)
         {
-            // Fornecedor: Volta a pendente
-            produtoDb.Estado = "Pendente";
+            Produto!.Estado = "Pendente";
         }
         else
         {
-            // Admin: Pode definir preço final e estado
-            if (Produto.PrecoVenda < Produto.PrecoBase)
+            if (Produto!.PrecoVenda < Produto.PrecoBase)
             {
                 mensagemErro = $"Erro: O Preço de Venda ({Produto.PrecoVenda:C}) não pode ser inferior ao Preço Base ({Produto.PrecoBase:C}).";
                 return;
             }
-            produtoDb.PrecoVenda = Produto.PrecoVenda;
-            produtoDb.Estado = Produto.Estado;
         }
 
-        // 5. Gravar
+        context.Attach(Produto!).State = EntityState.Modified;
+
         try
         {
             await context.SaveChangesAsync();
             NavigationManager.NavigateTo("produtos");
         }
-        catch (Exception ex)
+        catch (DbUpdateConcurrencyException)
         {
-            mensagemErro = "Erro ao atualizar: " + ex.Message;
+            if (!context.Produtos.Any(e => e.Id == Produto!.Id))
+                NavigationManager.NavigateTo("produtos");
+            else
+                throw;
         }
     }
 }

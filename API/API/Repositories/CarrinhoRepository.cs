@@ -23,12 +23,30 @@ namespace API.Repositories
 
         public async Task AdicionarItem(string userId, int produtoId, int quantidade)
         {
+            // 1. Buscar o Produto para ver o Stock real
+            var produto = await _context.Produtos.FindAsync(produtoId);
+            if (produto == null) throw new Exception("Produto não existe.");
+
             var itemExistente = await _context.Set<CarrinhoCompras>()
                 .FirstOrDefaultAsync(c => c.ClienteId == userId && c.ProdutoId == produtoId);
 
+            // 2. Calcular quantidade final pretendida
+            int qtdFinal = quantidade;
             if (itemExistente != null)
             {
-                itemExistente.Quantidade += quantidade;
+                qtdFinal += itemExistente.Quantidade;
+            }
+
+            // 3. VERIFICAÇÃO DE STOCK
+            if (qtdFinal > produto.Stock)
+            {
+                throw new InvalidOperationException($"Stock insuficiente! Só existem {produto.Stock} unidades.");
+            }
+
+            // 4. Gravar
+            if (itemExistente != null)
+            {
+                itemExistente.Quantidade = qtdFinal;
             }
             else
             {
@@ -46,14 +64,25 @@ namespace API.Repositories
         public async Task AtualizarQuantidade(string userId, int produtoId, int quantidade)
         {
             var item = await _context.Set<CarrinhoCompras>()
+                .Include(c => c.Produto) // Importante: Carregar dados do produto!
                 .FirstOrDefaultAsync(c => c.ClienteId == userId && c.ProdutoId == produtoId);
 
             if (item != null)
             {
                 if (quantidade <= 0)
+                {
                     _context.Remove(item);
+                }
                 else
+                {
+                    // VERIFICAÇÃO DE STOCK AQUI
+                    if (item.Produto != null && quantidade > item.Produto.Stock)
+                    {
+                        throw new InvalidOperationException($"Stock insuficiente! Só existem {item.Produto.Stock} unidades.");
+                    }
+
                     item.Quantidade = quantidade;
+                }
 
                 await _context.SaveChangesAsync();
             }

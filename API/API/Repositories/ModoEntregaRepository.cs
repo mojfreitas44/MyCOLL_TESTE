@@ -15,7 +15,7 @@ namespace API.Repositories
 
         public async Task<IEnumerable<ModoEntrega>> GetAllAsync()
         {
-            return await _context.ModoEntrega
+            return await _context.ModosEntrega
                 .AsNoTracking()
                 .OrderBy(m => m.Preco) // Ordena do mais barato para o mais caro
                 .ToListAsync();
@@ -23,7 +23,7 @@ namespace API.Repositories
 
         public async Task<ModoEntrega?> GetByIdAsync(int id)
         {
-            return await _context.ModoEntrega.FindAsync(id);
+            return await _context.ModosEntrega.FindAsync(id);
         }
     }
 }
