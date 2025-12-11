@@ -45,10 +45,8 @@ else
             {
                 var margem = margens.ContainsKey(p.Id) ? margens[p.Id] : 20;
                 var precoFinal = p.PrecoBase + (p.PrecoBase * (margem / 100));
-
                 <tr>
                     <td>
-                        @* --- CORREÇÃO AQUI (data:image/png) --- *@
                         @if (p.Imagem != null && p.Imagem.Length > 0)
                         {
                             <img src="data:image/png;base64,@Convert.ToBase64String(p.Imagem)"
@@ -61,11 +59,15 @@ else
                         }
                     </td>
                     <td>
-                        <strong>@p.Nome</strong><br />
+                        <strong>@p.Nome</strong>
+                        @* --- NOVA BADGE AQUI --- *@
+                        <span class="badge @(p.Condicao == "Novo" ? "bg-success" : "bg-warning text-dark") ms-2">
+                            @p.Condicao
+                        </span>
+                        <br />
                         <small class="text-muted">@(p.Categoria?.Nome ?? "Sem Categoria")</small>
                         <br />
-                        @* Mostra quem criou o produto *@
-                        <small class="text-secondary">Fornecedor: @(p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido")</small>
+                        <small class="text-secondary">Forn: @(p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido")</small>
                     </td>
                     <td>@p.PrecoBase.ToString("C")</td>
                     <td style="width:120px">

@@ -72,7 +72,8 @@
 
         <div class="col-12 text-end">
             <span class="text-muted small">
-                Total: <strong>@totalItens</strong> | Pág. <strong>@paginaAtual</strong> de <strong>@TotalPaginas</strong>
+                Total: <strong>@totalItens</strong> |
+                Pág. <strong>@paginaAtual</strong> de <strong>@TotalPaginas</strong>
             </span>
         </div>
     </div>
@@ -97,6 +98,7 @@ else
                 <th>Nome</th>
                 <th>Categoria</th>
                 <th>Preço</th>
+                <th>Condição</th> @* --- NOVA COLUNA --- *@
                 <th>Estado</th>
                 <th>Modo</th>
                 <th class="text-end">Ações</th>
@@ -135,6 +137,13 @@ else
                             <span class="text-muted fst-italic">N/A</span>
                         }
                     </td>
+                    @* --- NOVA CÉLULA: CONDIÇÃO --- *@
+                    <td>
+                        <span class="badge @(p.Condicao == "Novo" ? "bg-primary" : "bg-light text-dark border")">
+                            @p.Condicao
+                        </span>
+                    </td>
+                    @* ----------------------------- *@
                     <td>
                         <span class="badge @GetBadgeClass(p.Estado)">@p.Estado</span>
                     </td>
@@ -148,7 +157,6 @@ else
                             <span class="badge bg-secondary"><i class="bi bi-collection"></i> Coleção</span>
                         }
                     </td>
-                    @* --- CORREÇÃO AQUI: Adicionado texto aos botões --- *@
                     <td class="text-end">
                         <a href="produtos/edit?id=@p.Id" class="btn btn-sm btn-outline-primary">
                             <i class="bi bi-pencil"></i> Editar

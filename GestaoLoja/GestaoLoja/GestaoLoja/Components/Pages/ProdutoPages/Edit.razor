@@ -89,6 +89,14 @@ else
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label">Condição</label>
+                    <InputSelect @bind-Value="Produto.Condicao" class="form-select">
+                        <option value="Usado">Usado</option>
+                        <option value="Novo">Novo</option>
+                    </InputSelect>
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label">Descrição</label>
                     <InputTextArea @bind-Value="Produto.Descricao" class="form-control" rows="3" />
                 </div>

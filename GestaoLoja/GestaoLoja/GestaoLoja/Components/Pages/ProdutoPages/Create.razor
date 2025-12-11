@@ -48,6 +48,14 @@
             </div>
 
             <div class="mb-3">
+                <label class="form-label">Condição</label>
+                <InputSelect @bind-Value="Produto.Condicao" class="form-select">
+                    <option value="Usado">Usado</option>
+                    <option value="Novo">Novo</option>
+                </InputSelect>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">Descrição</label>
                 <InputTextArea @bind-Value="Produto.Descricao" class="form-control" rows="3" />
             </div>
@@ -71,7 +79,10 @@
 
             <div class="form-check mb-3">
                 <InputCheckbox @bind-Value="Produto.ParaVenda" class="form-check-input" id="paraVenda" />
-                <label class="form-check-label" for="paraVenda">Disponível para venda? (Se não, é apenas coleção)</label>
+                <label class="form-check-label" for="paraVenda">
+                    Disponível para venda?
+                    (Se não, é apenas coleção)
+                </label>
             </div>
 
             <button type="submit" class="btn btn-success">Submeter</button>
@@ -82,7 +93,7 @@
 
 @code {
     [SupplyParameterFromForm]
-    public Produto Produto { get; set; } = new();
+    public Produto Produto { get; set; } = new() { Condicao = "Usado" }; // Define padrão aqui
 
     private List<Categoria> categorias = new();
     private string? erroImagem;
@@ -110,7 +121,7 @@
             var ficheiro = e.File;
             if (ficheiro != null)
             {
-                var maxTamanho = 2 * 1024 * 1024;
+                var maxTamanho = 5 * 1024 * 1024; // Aumentei para 5MB para prevenir erros comuns
                 using var stream = ficheiro.OpenReadStream(maxTamanho);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
@@ -127,7 +138,6 @@
     private async Task SalvarProduto()
     {
         using var context = DbFactory.CreateDbContext();
-
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
