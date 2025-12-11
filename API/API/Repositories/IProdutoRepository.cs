@@ -7,7 +7,7 @@ namespace API.Repositories
         // Leitura (Público)
         Task<IEnumerable<Produto>> GetAllAsync(string? pesquisa, int? categoriaId);
         Task<Produto?> GetByIdAsync(int id);
-
+        Task<Produto?> GetProdutoDestaqueAsync();
         // Escrita (Fornecedor)
         Task<IEnumerable<Produto>> GetMeusProdutosAsync(string fornecedorId); // Só os meus
         Task<Produto> CriarProdutoAsync(Produto produto);

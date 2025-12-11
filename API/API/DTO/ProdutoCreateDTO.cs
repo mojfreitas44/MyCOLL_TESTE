@@ -12,7 +12,10 @@ namespace API.DTO
 
         [Range(0.01, double.MaxValue, ErrorMessage = "O preço deve ser maior que 0")]
         public decimal PrecoVenda { get; set; }
-
+        
+        [Range(1, int.MaxValue, ErrorMessage = "O stock deve ser pelo menos 1")]
+        public int Stock { get; set; }
+        
         [Required]
         public string Condicao { get; set; } = "Usado"; // Novo ou Usado
 

@@ -13,5 +13,6 @@ namespace API.Repositories
 
         // Mostra detalhes de uma encomenda específica
         Task<Encomenda?> GetDetalhesEncomenda(string userId, int encomendaId);
+        Task<IEnumerable<VendaFornecedorDTO>> GetVendasDoFornecedor(string fornecedorId);
     }
 }

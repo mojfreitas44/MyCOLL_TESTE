@@ -17,8 +17,9 @@ namespace API.Repositories
         {
             var query = _context.Produtos
                 .AsNoTracking()
+                .Include(p => p.Categoria) // Incluir categoria para mostrar o nome
                 .Where(p => p.ParaVenda == true)
-                .Where(p => p.Estado == "Ativo"); // <--- MUDANÇA AQUI (Era "Aprovado")
+                .Where(p => p.Estado == "Ativo");
 
             if (!string.IsNullOrEmpty(pesquisa))
             {
@@ -33,6 +34,29 @@ namespace API.Repositories
             return await query.ToListAsync();
         }
 
+        // --- NOVO MÉTODO IMPLEMENTADO ---
+        public async Task<Produto?> GetProdutoDestaqueAsync()
+        {
+            // 1. Contar quantos produtos elegíveis existem
+            var count = await _context.Produtos.CountAsync(p => p.Estado == "Ativo" && p.ParaVenda == true);
+
+            if (count == 0) return null;
+
+            // 2. Sortear um índice aleatório
+            var random = new Random();
+            var skip = random.Next(0, count);
+
+            // 3. Saltar e pegar 1
+            return await _context.Produtos
+                .AsNoTracking()
+                .Include(p => p.Categoria)
+                .Include(p => p.Fornecedor)
+                .Where(p => p.Estado == "Ativo" && p.ParaVenda == true)
+                .Skip(skip)
+                .FirstOrDefaultAsync();
+        }
+        // ---------------------------------
+
         public async Task<Produto?> GetByIdAsync(int id)
         {
             return await _context.Produtos
@@ -44,6 +68,7 @@ namespace API.Repositories
         public async Task<IEnumerable<Produto>> GetMeusProdutosAsync(string fornecedorId)
         {
             return await _context.Produtos
+                .Include(p => p.Categoria) // É bom ver a categoria também na lista do fornecedor
                 .Where(p => p.FornecedorId == fornecedorId)
                 .OrderByDescending(p => p.Id)
                 .ToListAsync();

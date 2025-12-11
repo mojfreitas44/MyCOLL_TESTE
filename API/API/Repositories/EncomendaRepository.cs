@@ -83,5 +83,24 @@ namespace API.Repositories
                 .ThenInclude(i => i.Produto) // Para ver o nome do produto no detalhe
                 .FirstOrDefaultAsync(e => e.Id == encomendaId && e.ClienteId == userId);
         }
+        public async Task<IEnumerable<VendaFornecedorDTO>> GetVendasDoFornecedor(string fornecedorId)
+        {
+            return await _context.Set<EncomendaItem>()
+                .Include(i => i.Encomenda)
+                .Include(i => i.Produto)
+                .Where(i => i.Produto.FornecedorId == fornecedorId) // O Filtro Principal
+                .OrderByDescending(i => i.Encomenda.Data)
+                .Select(i => new VendaFornecedorDTO
+                {
+                    EncomendaId = i.EncomendaId,
+                    DataVenda = i.Encomenda.Data,
+                    NomeProduto = i.Produto.Nome,
+                    Quantidade = i.Quantidade,
+                    PrecoUnitario = i.PrecoUnitario,
+                    TotalGanho = i.Quantidade * i.PrecoUnitario,
+                    EstadoEncomenda = i.Encomenda.Estado
+                })
+                .ToListAsync();
+        }
     }
 }
