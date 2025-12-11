@@ -47,6 +47,7 @@ builder.Services.AddScoped<ICarrinhoRepository, CarrinhoRepository>();
 builder.Services.AddScoped<IEncomendaRepository, EncomendaRepository>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IModoEntregaRepository, ModoEntregaRepository>();
+builder.Services.AddScoped<IFavoritoRepository, FavoritoRepository>();
 
 // 6. SWAGGER (Mantemos isto para poderes testar com o botão verde)
 builder.Services.AddEndpointsApiExplorer();

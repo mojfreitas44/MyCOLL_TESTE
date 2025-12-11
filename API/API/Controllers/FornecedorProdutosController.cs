@@ -15,11 +15,17 @@ namespace API.Controllers
     public class FornecedorProdutosController : ControllerBase
     {
         private readonly IProdutoRepository _repo;
+        private readonly IEncomendaRepository _encomendaRepo; // <--- NOVO: Para ver as vendas
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public FornecedorProdutosController(IProdutoRepository repo, UserManager<ApplicationUser> userManager)
+        // Atualizámos o construtor para receber o IEncomendaRepository
+        public FornecedorProdutosController(
+            IProdutoRepository repo,
+            IEncomendaRepository encomendaRepo,
+            UserManager<ApplicationUser> userManager)
         {
             _repo = repo;
+            _encomendaRepo = encomendaRepo;
             _userManager = userManager;
         }
 
@@ -30,10 +36,8 @@ namespace API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Busca apenas os produtos deste fornecedor
             var produtos = await _repo.GetMeusProdutosAsync(userId!);
 
-            // Converter para DTO
             var dtos = produtos.Select(p => new ProdutoDTO
             {
                 Id = p.Id,
@@ -44,7 +48,6 @@ namespace API.Controllers
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
                 Imagem = p.Imagem,
-                // Mostra o estado real (Pendente/Ativo) ao fornecedor
                 Disponibilidade = p.Estado
             });
 
@@ -58,7 +61,6 @@ namespace API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Converter imagem Base64 (texto) para bytes
             byte[]? imagemBytes = null;
             if (!string.IsNullOrEmpty(dto.ImagemBase64))
             {
@@ -69,22 +71,14 @@ namespace API.Controllers
             {
                 Nome = dto.Nome,
                 Descricao = dto.Descricao,
-
-                // Preços
-                PrecoBase = dto.PrecoVenda, // O preço que ele define é o base
-                PrecoVenda = dto.PrecoVenda, // Inicialmente igual (admin pode mudar)
-
-                // Stock e Condição
+                PrecoBase = dto.PrecoVenda,
+                PrecoVenda = dto.PrecoVenda,
                 Stock = dto.Stock,
-                Condicao = dto.Condicao, // "Novo" ou "Usado"
-
-                // Dados Fixos
+                Condicao = dto.Condicao,
                 CategoriaId = dto.CategoriaId,
                 FornecedorId = userId,
                 Imagem = imagemBytes,
                 ParaVenda = true,
-
-                // REGRA: Nasce sempre Pendente
                 Estado = "Pendente"
             };
 
@@ -100,37 +94,32 @@ namespace API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // A. Verificar se o produto pertence mesmo a este fornecedor
             if (!await _repo.SouDonoDoProduto(id, userId!))
             {
-                return Forbid(); // 403: Proibido mexer no que não é teu
+                return Forbid();
             }
 
             var produto = await _repo.GetByIdAsync(id);
             if (produto == null) return NotFound();
 
-            // B. REGRA DE STOCK: Fornecedor só pode aumentar, nunca diminuir
             if (dto.Stock < produto.Stock)
             {
                 return BadRequest($"Erro: Não pode reduzir o stock manualmente (Stock Atual: {produto.Stock}). Apenas vendas reduzem o stock.");
             }
 
-            // C. Atualizar Dados
             produto.Nome = dto.Nome;
             produto.Descricao = dto.Descricao;
             produto.PrecoBase = dto.PrecoVenda;
-            produto.PrecoVenda = dto.PrecoVenda; // Reinicia o preço de venda
+            produto.PrecoVenda = dto.PrecoVenda;
             produto.Stock = dto.Stock;
             produto.Condicao = dto.Condicao;
             produto.CategoriaId = dto.CategoriaId;
 
-            // Atualizar imagem só se vier uma nova
             if (!string.IsNullOrEmpty(dto.ImagemBase64))
             {
                 try { produto.Imagem = Convert.FromBase64String(dto.ImagemBase64); } catch { }
             }
 
-            // D. REGRA: Voltar a Pendente após edição
             produto.Estado = "Pendente";
 
             await _repo.AtualizarProdutoAsync(produto);
@@ -145,11 +134,23 @@ namespace API.Controllers
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Verificar dono
             if (!await _repo.SouDonoDoProduto(id, userId!)) return Forbid();
 
             await _repo.ApagarProdutoAsync(id);
             return NoContent();
+        }
+
+        // 5. HISTÓRICO DE VENDAS (NOVO!) 💰
+        // GET: api/FornecedorProdutos/vendas
+        [HttpGet("vendas")]
+        public async Task<ActionResult<IEnumerable<VendaFornecedorDTO>>> GetMinhasVendas()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Vai buscar as vendas deste fornecedor específico
+            var vendas = await _encomendaRepo.GetVendasDoFornecedor(userId!);
+
+            return Ok(vendas);
         }
     }
 }
