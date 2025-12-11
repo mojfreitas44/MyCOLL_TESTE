@@ -65,7 +65,7 @@ else
                         <small class="text-muted">@(p.Categoria?.Nome ?? "Sem Categoria")</small>
                         <br />
                         @* Mostra quem criou o produto *@
-                        <small class="text-secondary">Forn: @(p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido")</small>
+                        <small class="text-secondary">Fornecedor: @(p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido")</small>
                     </td>
                     <td>@p.PrecoBase.ToString("C")</td>
                     <td style="width:120px">
