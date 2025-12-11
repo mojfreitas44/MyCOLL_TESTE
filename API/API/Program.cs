@@ -32,9 +32,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ==============================================================================
 // 3. CONFIGURAÇÃO DO IDENTITY (LOGIN/USERS)
 // ==============================================================================
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 {
-    // Configurações de password mais relaxadas para testes (opcional)
+    // As tuas regras de password mantêm-se aqui
     options.SignIn.RequireConfirmedAccount = false;
     options.User.RequireUniqueEmail = true;
     options.Password.RequireDigit = false;
@@ -44,8 +44,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     options.Password.RequiredLength = 3;
 })
 .AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
+.AddEntityFrameworkStores<ApplicationDbContext>();
 
 // ==============================================================================
 // 4. AUTENTICAÇÃO JWT (TOKEN)
@@ -150,6 +149,8 @@ app.UseCors("AllowAll");
 // Ativar Autenticação e Autorização (A ordem importa!)
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGroup("/identity").MapIdentityApi<ApplicationUser>();
 
 app.MapControllers();
 
