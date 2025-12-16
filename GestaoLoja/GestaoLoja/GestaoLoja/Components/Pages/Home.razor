@@ -124,12 +124,10 @@
 
                 // Nota: Verifica se a tabela Encomendas já existe antes de correres isto
                 if (await context.Database.CanConnectAsync())
-                {
-                    totalVendas = await context.Encomendas.SumAsync(e => e.ValorTotal);
-                    encomendasPendentes = await context.Encomendas.CountAsync(e => e.Estado == "Pendente");
-                    produtosPendentes = await context.Produtos.CountAsync(p => p.Estado == "Pendente");
-                    totalUsers = await context.Users.CountAsync();
-                }
+                    totalVendas = await context.Encomendas
+                            .Where(e => e.Estado != "Pendente")
+                            .SumAsync(e => e.ValorTotal);
+                encomendasPendentes = await context.Encomendas.CountAsync(e => e.Estado == "Pendente");
             }
             catch { }
         }

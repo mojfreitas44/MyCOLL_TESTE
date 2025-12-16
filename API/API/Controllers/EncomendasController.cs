@@ -1,6 +1,7 @@
 ﻿using API.DTO;
+using API.Entities;
 using API.Repositories;
-using API.Data; // Para aceder ao ApplicationUser
+using API.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Só clientes logados podem fazer encomendas
+    [Authorize]
     public class EncomendasController : ControllerBase
     {
         private readonly IEncomendaRepository _encomendaRepository;
@@ -23,76 +24,69 @@ namespace API.Controllers
         }
 
         // POST: api/Encomendas
-        // Finalizar Compra (Checkout)
         [HttpPost]
-        public async Task<ActionResult<EncomendaDTO>> CriarEncomenda([FromBody] CheckoutDto checkoutDto)
+        public async Task<ActionResult<EncomendaDTO>> Checkout([FromBody] CheckoutDto dto)
         {
-            // 1. Quem é o cliente?
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Unauthorized();
 
-            // 2. O cliente está ativo?
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null || user.Estado != "Ativo")
-                return StatusCode(403, "Conta não ativa.");
+            if (user == null || user.Estado != "Ativo") return StatusCode(403, "Conta inativa.");
 
             try
             {
-                // 3. Criar a encomenda (O repositório faz o trabalho sujo)
-                var encomenda = await _encomendaRepository.CriarEncomenda(userId, checkoutDto);
+                // Agora o 'dto' já tem o NumeroCartao, por isso o Repositório não falha
+                var novaEncomenda = await _encomendaRepository.CriarEncomenda(userId, dto);
 
-                // 4. Retornar os dados da encomenda criada
-                return Ok(new EncomendaDTO
+                // Mapeamento correto
+                var resultado = new EncomendaDTO
                 {
-                    Id = encomenda.Id,
-                    Data = encomenda.Data,
-                    ValorTotal = encomenda.ValorTotal,
-                    Estado = encomenda.Estado,
-                    MoradaEnvio = encomenda.MoradaEnvio ?? "",
-                    MetodoPagamento = encomenda.MetodoPagamento ?? "",
-                    MetodoEntrega = encomenda.MetodoEntrega ?? "",
-                    Itens = encomenda.Itens.Select(i => new ItemEncomendaDTO
+                    Id = novaEncomenda.Id,
+                    Data = novaEncomenda.Data,
+                    Estado = novaEncomenda.Estado,
+                    ValorTotal = novaEncomenda.ValorTotal,
+                    MetodoPagamento = novaEncomenda.MetodoPagamento ?? "",
+                    MoradaEnvio = novaEncomenda.MoradaEnvio ?? "",
+                    MetodoEntrega = novaEncomenda.MetodoEntrega ?? "",
+                    Itens = novaEncomenda.Itens.Select(i => new ItemCarrinhoDTO
                     {
-                        ProdutoNome = i.Produto?.Nome ?? "Produto Desconhecido",
+                        ProdutoId = i.ProdutoId,
+                        Nome = i.Produto?.Nome ?? "Produto",
                         Quantidade = i.Quantidade,
-                        PrecoUnitario = i.PrecoUnitario
+                        Preco = i.PrecoUnitario
                     }).ToList()
-                });
+                };
+
+                return Ok(resultado);
             }
             catch (Exception ex)
             {
-                // Ex: "Carrinho vazio"
-                return BadRequest(ex.Message);
+                return BadRequest(new { Message = ex.Message });
             }
         }
 
         // GET: api/Encomendas
-        // Ver histórico de compras (Meus Pedidos)
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EncomendaDTO>>> GetMinhasEncomendas()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return Unauthorized();
+            var encomendas = await _encomendaRepository.GetEncomendasDoCliente(userId!);
 
-            var encomendas = await _encomendaRepository.GetEncomendasDoCliente(userId);
-
-            // Converter para DTO
             var dtos = encomendas.Select(e => new EncomendaDTO
             {
                 Id = e.Id,
                 Data = e.Data,
-                ValorTotal = e.ValorTotal,
                 Estado = e.Estado,
-                MoradaEnvio = e.MoradaEnvio ?? "",
+                ValorTotal = e.ValorTotal,
                 MetodoPagamento = e.MetodoPagamento ?? "",
+                MoradaEnvio = e.MoradaEnvio ?? "",
                 MetodoEntrega = e.MetodoEntrega ?? "",
-                // No histórico geral não precisamos de mostrar os itens todos,
-                // mas podemos mostrar o número de itens ou o primeiro produto.
-                Itens = e.Itens.Select(i => new ItemEncomendaDTO
+                Itens = e.Itens.Select(i => new ItemCarrinhoDTO
                 {
-                    ProdutoNome = i.Produto?.Nome ?? "Produto",
+                    ProdutoId = i.ProdutoId,
+                    Nome = i.Produto?.Nome ?? "Produto",
                     Quantidade = i.Quantidade,
-                    PrecoUnitario = i.PrecoUnitario
+                    Preco = i.PrecoUnitario
                 }).ToList()
             });
 
@@ -100,33 +94,33 @@ namespace API.Controllers
         }
 
         // GET: api/Encomendas/5
-        // Ver detalhes de uma encomenda específica
         [HttpGet("{id}")]
         public async Task<ActionResult<EncomendaDTO>> GetDetalhes(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return Unauthorized();
+            var encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId!, id);
 
-            var encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId, id);
+            if (encomenda == null) return NotFound(new { Message = "Encomenda não encontrada." });
 
-            if (encomenda == null) return NotFound("Encomenda não encontrada.");
-
-            return Ok(new EncomendaDTO
+            var dto = new EncomendaDTO
             {
                 Id = encomenda.Id,
                 Data = encomenda.Data,
-                ValorTotal = encomenda.ValorTotal,
                 Estado = encomenda.Estado,
-                MoradaEnvio = encomenda.MoradaEnvio ?? "",
+                ValorTotal = encomenda.ValorTotal,
                 MetodoPagamento = encomenda.MetodoPagamento ?? "",
+                MoradaEnvio = encomenda.MoradaEnvio ?? "",
                 MetodoEntrega = encomenda.MetodoEntrega ?? "",
-                Itens = encomenda.Itens.Select(i => new ItemEncomendaDTO
+                Itens = encomenda.Itens.Select(i => new ItemCarrinhoDTO
                 {
-                    ProdutoNome = i.Produto?.Nome ?? "Produto Removido",
+                    ProdutoId = i.ProdutoId,
+                    Nome = i.Produto?.Nome ?? "Produto",
                     Quantidade = i.Quantidade,
-                    PrecoUnitario = i.PrecoUnitario
+                    Preco = i.PrecoUnitario
                 }).ToList()
-            });
+            };
+
+            return Ok(dto);
         }
     }
 }

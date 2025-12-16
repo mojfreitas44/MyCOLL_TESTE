@@ -37,7 +37,7 @@ namespace API.Controllers
                 Condicao = p.Condicao,
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
-                FornecedorNome = p.Fornecedor?.Nome,
+                FornecedorNome = p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido",
                 Imagem = p.Imagem,
 
                 Disponibilidade = p.Stock <= 0 ? "Esgotado" :
@@ -62,7 +62,7 @@ namespace API.Controllers
                 Condicao = p.Condicao,
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
-                FornecedorNome = p.Fornecedor?.Nome,
+                FornecedorNome = p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido",
                 Imagem = p.Imagem,
                 Disponibilidade = CalcularDisponibilidade(p.Stock)
             });
@@ -86,7 +86,7 @@ namespace API.Controllers
                 Condicao = p.Condicao,
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
-                FornecedorNome = p.Fornecedor?.Nome,
+                FornecedorNome = p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido",
                 Imagem = p.Imagem
             });
         }

@@ -197,31 +197,23 @@ else
     private async Task MudarEstado(Encomenda enc, string novoEstado)
     {
         using var context = DbFactory.CreateDbContext();
-        var encomendaDb = await context.Encomendas
-            .Include(e => e.Itens)
-            .ThenInclude(i => i.Produto)
-            .FirstOrDefaultAsync(e => e.Id == enc.Id);
+
+        // Buscar a encomenda à BD
+        var encomendaDb = await context.Encomendas.FirstOrDefaultAsync(e => e.Id == enc.Id);
 
         if (encomendaDb != null)
         {
-            if (novoEstado == "Enviado" && encomendaDb.Estado != "Enviado" && encomendaDb.Estado != "Concluido")
-            {
-                foreach (var item in encomendaDb.Itens)
-                {
-                    if (item.Produto.Stock < item.Quantidade)
-                    {
-                        await JS.InvokeVoidAsync("alert", $"Erro: Stock insuficiente para '{item.Produto.Nome}'. Stock: {item.Produto.Stock}.");
-                        return;
-                    }
-                }
-                foreach (var item in encomendaDb.Itens)
-                {
-                    item.Produto.Stock -= item.Quantidade;
-                }
-            }
+            // --- REMOVIDO: Lógica de Stock ---
+            // Já não precisamos de verificar nem descontar stock aqui.
+            // A API já fez isso quando o cliente clicou em "Checkout".
+            // ---------------------------------
 
+            // Apenas atualizamos o estado (texto)
             encomendaDb.Estado = novoEstado;
+
             await context.SaveChangesAsync();
+
+            // Atualiza a lista na tabela
             await CarregarDados();
         }
     }

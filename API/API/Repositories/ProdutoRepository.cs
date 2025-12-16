@@ -102,5 +102,13 @@ namespace API.Repositories
             return await _context.Produtos
                 .AnyAsync(p => p.Id == produtoId && p.FornecedorId == fornecedorId);
         }
+        public async Task<IEnumerable<Produto>> GetProdutosPendentesAsync()
+        {
+            return await _context.Produtos
+                .Include(p => p.Categoria)
+                .Include(p => p.Fornecedor) 
+                .Where(p => p.Estado == "Pendente")
+                .ToListAsync();
+        }
     }
 }
