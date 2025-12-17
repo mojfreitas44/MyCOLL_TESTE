@@ -122,14 +122,28 @@
             {
                 using var context = DbFactory.CreateDbContext();
 
-                // Nota: Verifica se a tabela Encomendas já existe antes de correres isto
-                if (await context.Database.CanConnectAsync())
-                    totalVendas = await context.Encomendas
-                            .Where(e => e.Estado != "Pendente")
-                            .SumAsync(e => e.ValorTotal);
-                encomendasPendentes = await context.Encomendas.CountAsync(e => e.Estado == "Pendente");
+                // 1. Total Vendas (Soma de encomendas que NÃO estão pendentes, ou seja, pagas/processadas)
+                totalVendas = await context.Encomendas
+                    .Where(e => e.Estado != "Pendente")
+                    .SumAsync(e => e.ValorTotal);
+
+                // 2. Encomendas a aguardar processamento
+                encomendasPendentes = await context.Encomendas
+                    .CountAsync(e => e.Estado == "Pendente");
+
+                // 3. Produtos a aguardar aprovação (O QUE FALTAVA)
+                produtosPendentes = await context.Produtos
+                    .CountAsync(p => p.Estado == "Pendente");
+
+                // 4. Utilizadores ativos no sistema (O QUE FALTAVA)
+                totalUsers = await context.Users
+                    .CountAsync(u => u.Estado == "Ativo");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Em caso de erro (ex: BD ainda vazia ou migrações em falta), não crasha a página
+                Console.WriteLine($"Erro ao carregar dashboard: {ex.Message}");
+            }
         }
 
         isLoading = false;
