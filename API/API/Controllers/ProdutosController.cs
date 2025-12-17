@@ -36,7 +36,9 @@ namespace API.Controllers
                 // A correção do Fornecedor para evitar "vazio"
                 FornecedorNome = !string.IsNullOrEmpty(p.Fornecedor?.Nome)
                     ? p.Fornecedor.Nome : (p.Fornecedor?.UserName ?? "Produto Oficial"),
-                Disponibilidade = p.Estado
+                Disponibilidade = p.Stock <= 0 ? "Esgotado" :
+                  p.Stock <= 5 ? "Últimas Unidades" :
+                  "Em Stock"
             }).ToList();
 
             return Ok(produtosDto);
@@ -66,7 +68,9 @@ namespace API.Controllers
                 CategoriaNome = produto.Categoria?.Nome,
                 FornecedorNome = !string.IsNullOrEmpty(produto.Fornecedor?.Nome)
                     ? produto.Fornecedor.Nome : (produto.Fornecedor?.UserName ?? "Produto Oficial"),
-                Disponibilidade = produto.Estado
+                Disponibilidade = produto.Stock <= 0 ? "Esgotado" :
+                  produto.Stock <= 5 ? "Últimas Unidades" :
+                  "Em Stock"
             };
 
             return Ok(dto);
@@ -96,7 +100,9 @@ namespace API.Controllers
                 CategoriaNome = produto.Categoria?.Nome,
                 FornecedorNome = !string.IsNullOrEmpty(produto.Fornecedor?.Nome)
                    ? produto.Fornecedor.Nome : (produto.Fornecedor?.UserName ?? "Produto Oficial"),
-                Disponibilidade = produto.Estado
+                Disponibilidade = produto.Stock <= 0 ? "Esgotado" :
+                  produto.Stock <= 5 ? "Últimas Unidades" :
+                  "Em Stock"
             };
 
             return Ok(dto);

@@ -11,7 +11,7 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Cliente")]
     public class EncomendasController : ControllerBase
     {
         private readonly IEncomendaRepository _encomendaRepository;
