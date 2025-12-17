@@ -16,8 +16,7 @@ namespace API.Repositories
 
         public async Task<Encomenda> CriarEncomenda(string userId, CheckoutDto dto)
         {
-            // --- 1. BLOQUEAR MÉTODOS ESTRANHOS (A Alteração) ---
-            // Define a lista branca. Se vier "Batatas", rebenta aqui.
+            // --- 1. BLOQUEAR MÉTODOS ESTRANHOS ---
             var metodosAceites = new[] { "Visa", "Mastercard" };
 
             if (!metodosAceites.Contains(dto.MetodoPagamento))
@@ -26,7 +25,6 @@ namespace API.Repositories
             }
 
             // --- 2. VALIDAR MODO DE ENTREGA ---
-            // Verifica se o ID do envio existe na BD
             var modoEntrega = await _context.ModosEntrega.FindAsync(dto.ModoEntregaId);
             if (modoEntrega == null)
             {
@@ -34,7 +32,6 @@ namespace API.Repositories
             }
 
             // --- 3. VALIDAR DADOS DO CARTÃO ---
-            // Como já obrigámos a ser Visa ou Mastercard no passo 1, validamos SEMPRE os números.
             if (string.IsNullOrEmpty(dto.NumeroCartao) || dto.NumeroCartao.Length < 16)
             {
                 throw new Exception("Pagamento Recusado: Cartão inválido (Simulação: use 16 dígitos).");
@@ -60,8 +57,6 @@ namespace API.Repositories
                 Estado = "Pendente",
                 MoradaEnvio = dto.MoradaEnvio,
                 MetodoPagamento = dto.MetodoPagamento,
-
-                // Guardamos o Nome e Preço atuais para histórico
                 MetodoEntrega = modoEntrega.Nome,
                 ValorTotal = modoEntrega.Preco
             };
@@ -71,16 +66,13 @@ namespace API.Repositories
             {
                 if (item.Produto == null) continue;
 
-                // Validação de Stock
                 if (item.Produto.Stock < item.Quantidade)
                 {
                     throw new Exception($"Stock insuficiente para o produto '{item.Produto.Nome}'. Restam apenas {item.Produto.Stock}.");
                 }
 
-                // Descontar do Stock
                 item.Produto.Stock -= item.Quantidade;
 
-                // Criar linha da encomenda
                 var encomendaItem = new EncomendaItem
                 {
                     ProdutoId = item.ProdutoId,
@@ -89,8 +81,6 @@ namespace API.Repositories
                 };
 
                 novaEncomenda.Itens.Add(encomendaItem);
-
-                // Somar ao total (que já inclui o envio)
                 novaEncomenda.ValorTotal += (encomendaItem.PrecoUnitario * encomendaItem.Quantidade);
             }
 
@@ -103,10 +93,12 @@ namespace API.Repositories
             return novaEncomenda;
         }
 
+        // --- MÉTODOS DE CLIENTE ---
         public async Task<IEnumerable<Encomenda>> GetEncomendasDoCliente(string userId)
         {
             return await _context.Set<Encomenda>()
                 .Include(e => e.Itens)
+                .ThenInclude(i => i.Produto) // Importante incluir o Produto para ver o nome
                 .Where(e => e.ClienteId == userId)
                 .OrderByDescending(e => e.Data)
                 .ToListAsync();
@@ -119,6 +111,25 @@ namespace API.Repositories
                 .ThenInclude(i => i.Produto)
                 .FirstOrDefaultAsync(e => e.Id == encomendaId && e.ClienteId == userId);
         }
+
+        // --- MÉTODOS DE ADMIN (NOVOS) ---
+        public async Task<IEnumerable<Encomenda>> GetAllEncomendas()
+        {
+            return await _context.Set<Encomenda>()
+                .Include(e => e.Itens)
+                .ThenInclude(i => i.Produto)
+                .OrderByDescending(e => e.Data)
+                .ToListAsync();
+        }
+
+        public async Task<Encomenda?> GetEncomendaPorId(int id)
+        {
+            return await _context.Set<Encomenda>()
+                .Include(e => e.Itens)
+                .ThenInclude(i => i.Produto)
+                .FirstOrDefaultAsync(e => e.Id == id);
+        }
+        // -------------------------------
 
         public async Task<IEnumerable<VendaFornecedorDTO>> GetVendasDoFornecedor(string fornecedorId)
         {

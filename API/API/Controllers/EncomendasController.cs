@@ -11,7 +11,7 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Cliente")]
+    [Authorize] // Autenticação básica obrigatória para todos
     public class EncomendasController : ControllerBase
     {
         private readonly IEncomendaRepository _encomendaRepository;
@@ -23,22 +23,24 @@ namespace API.Controllers
             _userManager = userManager;
         }
 
-        // POST: api/Encomendas
+        // 1. CRIAR ENCOMENDA (Checkout)
+        // LÓGICA: Apenas 'Cliente' pode criar encomendas.
         [HttpPost]
+        [Authorize(Roles = "Cliente")]
         public async Task<ActionResult<EncomendaDTO>> Checkout([FromBody] CheckoutDto dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Unauthorized();
 
+            // Verificação extra de segurança da conta
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null || user.Estado != "Ativo") return StatusCode(403, "Conta inativa.");
 
             try
             {
-                // Agora o 'dto' já tem o NumeroCartao, por isso o Repositório não falha
                 var novaEncomenda = await _encomendaRepository.CriarEncomenda(userId, dto);
 
-                // Mapeamento correto
+                // Mapeamento manual para DTO
                 var resultado = new EncomendaDTO
                 {
                     Id = novaEncomenda.Id,
@@ -65,12 +67,24 @@ namespace API.Controllers
             }
         }
 
-        // GET: api/Encomendas
+        // 2. LISTAR ENCOMENDAS
+        // LÓGICA: Admin/Funcionario vê TUDO. Cliente vê SÓ AS SUAS.
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<EncomendaDTO>>> GetMinhasEncomendas()
+        public async Task<ActionResult<IEnumerable<EncomendaDTO>>> GetEncomendas()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var encomendas = await _encomendaRepository.GetEncomendasDoCliente(userId!);
+            IEnumerable<Encomenda> encomendas;
+
+            // Se for Gestão, vê o histórico global
+            if (User.IsInRole("Administrador") || User.IsInRole("Funcionario"))
+            {
+                encomendas = await _encomendaRepository.GetAllEncomendas();
+            }
+            else
+            {
+                // Se for Cliente, vê apenas as suas
+                encomendas = await _encomendaRepository.GetEncomendasDoCliente(userId!);
+            }
 
             var dtos = encomendas.Select(e => new EncomendaDTO
             {
@@ -93,12 +107,24 @@ namespace API.Controllers
             return Ok(dtos);
         }
 
-        // GET: api/Encomendas/5
+        // 3. DETALHES DA ENCOMENDA
+        // LÓGICA: Admin vê qualquer uma. Cliente só vê se for dele.
         [HttpGet("{id}")]
         public async Task<ActionResult<EncomendaDTO>> GetDetalhes(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId!, id);
+            Encomenda? encomenda;
+
+            if (User.IsInRole("Administrador") || User.IsInRole("Funcionario"))
+            {
+                // Admin procura sem filtro de utilizador
+                encomenda = await _encomendaRepository.GetEncomendaPorId(id);
+            }
+            else
+            {
+                // Cliente procura com filtro de utilizador (Segurança)
+                encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId!, id);
+            }
 
             if (encomenda == null) return NotFound(new { Message = "Encomenda não encontrada." });
 

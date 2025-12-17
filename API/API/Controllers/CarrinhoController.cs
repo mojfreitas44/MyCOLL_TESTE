@@ -11,7 +11,7 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Obriga a estar logado (Token JWT)
+    [Authorize(Roles = "Cliente")] 
     public class CarrinhoController : ControllerBase
     {
         private readonly ICarrinhoRepository _carrinhoRepository;
