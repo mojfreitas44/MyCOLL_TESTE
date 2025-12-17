@@ -17,7 +17,8 @@ namespace API.Repositories
         {
             var query = _context.Produtos
                 .AsNoTracking()
-                .Include(p => p.Categoria) // Incluir categoria para mostrar o nome
+                .Include(p => p.Categoria)
+                .Include(p => p.Fornecedor)
                 .Where(p => p.ParaVenda == true)
                 .Where(p => p.Estado == "Ativo");
 
@@ -68,7 +69,8 @@ namespace API.Repositories
         public async Task<IEnumerable<Produto>> GetMeusProdutosAsync(string fornecedorId)
         {
             return await _context.Produtos
-                .Include(p => p.Categoria) // É bom ver a categoria também na lista do fornecedor
+                .Include(p => p.Categoria)
+                .Include(p => p.Fornecedor) 
                 .Where(p => p.FornecedorId == fornecedorId)
                 .OrderByDescending(p => p.Id)
                 .ToListAsync();

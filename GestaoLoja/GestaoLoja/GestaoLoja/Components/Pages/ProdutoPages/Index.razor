@@ -96,9 +96,10 @@ else
             <tr>
                 <th>Imagem</th>
                 <th>Nome</th>
+                <th>Fornecedor</th>
                 <th>Categoria</th>
                 <th>Preço</th>
-                <th>Condição</th> @* --- NOVA COLUNA --- *@
+                <th>Condição</th>
                 <th>Estado</th>
                 <th>Modo</th>
                 <th class="text-end">Ações</th>
@@ -126,6 +127,21 @@ else
                             <span class="badge bg-info text-dark ms-1">Meu</span>
                         }
                     </td>
+
+                    @* --- NOVA CÉLULA: LÓGICA DO FORNECEDOR --- *@
+                    <td>
+                        @if (string.IsNullOrEmpty(p.Fornecedor?.Nome))
+                        {
+                            @* Se Nome é nulo ou vazio, usa Email. Se não houver User, é Oficial *@
+                            <span class="badge bg-secondary">@(p.Fornecedor?.UserName ?? "Produto Oficial")</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info text-dark">@p.Fornecedor.Nome</span>
+                        }
+                    </td>
+                    @* ---------------------------------------- *@
+
                     <td>@(p.Categoria?.Nome ?? "-")</td>
                     <td>
                         @if (p.ParaVenda)
@@ -137,13 +153,11 @@ else
                             <span class="text-muted fst-italic">N/A</span>
                         }
                     </td>
-                    @* --- NOVA CÉLULA: CONDIÇÃO --- *@
                     <td>
                         <span class="badge @(p.Condicao == "Novo" ? "bg-primary" : "bg-light text-dark border")">
                             @p.Condicao
                         </span>
                     </td>
-                    @* ----------------------------- *@
                     <td>
                         <span class="badge @GetBadgeClass(p.Estado)">@p.Estado</span>
                     </td>
@@ -262,6 +276,7 @@ else
         using var context = DbFactory.CreateDbContext();
         var query = context.Produtos
             .Include(p => p.Categoria)
+            .Include(p => p.Fornecedor) // <--- ESTA LINHA É NOVA E OBRIGATÓRIA
             .AsQueryable();
 
         // Filtro Estado

@@ -47,6 +47,8 @@ namespace API.Controllers
                 Condicao = p.Condicao,
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
+                FornecedorNome = !string.IsNullOrEmpty(p.Fornecedor?.Nome) ?
+                    p.Fornecedor.Nome : (p.Fornecedor?.UserName ?? "Produto Oficial"),
                 Imagem = p.Imagem,
                 Disponibilidade = p.Estado
             });

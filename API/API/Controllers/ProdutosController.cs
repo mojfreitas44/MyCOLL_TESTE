@@ -34,7 +34,8 @@ namespace API.Controllers
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
                 // A correção do Fornecedor para evitar "vazio"
-                FornecedorNome = p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Anónimo",
+                FornecedorNome = !string.IsNullOrEmpty(p.Fornecedor?.Nome)
+                    ? p.Fornecedor.Nome : (p.Fornecedor?.UserName ?? "Produto Oficial"),
                 Disponibilidade = p.Estado
             }).ToList();
 
@@ -42,7 +43,7 @@ namespace API.Controllers
         }
 
         // GET: api/Produtos/destaque
-        // Serve para o Hero/Carousel da Home
+        
         [HttpGet("destaque")]
         public async Task<ActionResult<ProdutoDTO>> GetDestaque()
         {
@@ -63,7 +64,8 @@ namespace API.Controllers
                 Condicao = produto.Condicao,
                 CategoriaId = produto.CategoriaId,
                 CategoriaNome = produto.Categoria?.Nome,
-                FornecedorNome = produto.Fornecedor?.Nome ?? produto.Fornecedor?.UserName ?? "Anónimo",
+                FornecedorNome = !string.IsNullOrEmpty(produto.Fornecedor?.Nome)
+                    ? produto.Fornecedor.Nome : (produto.Fornecedor?.UserName ?? "Produto Oficial"),
                 Disponibilidade = produto.Estado
             };
 
@@ -92,7 +94,8 @@ namespace API.Controllers
                 Condicao = produto.Condicao,
                 CategoriaId = produto.CategoriaId,
                 CategoriaNome = produto.Categoria?.Nome,
-                FornecedorNome = produto.Fornecedor?.Nome ?? produto.Fornecedor?.UserName ?? "Anónimo",
+                FornecedorNome = !string.IsNullOrEmpty(produto.Fornecedor?.Nome)
+                   ? produto.Fornecedor.Nome : (produto.Fornecedor?.UserName ?? "Produto Oficial"),
                 Disponibilidade = produto.Estado
             };
 

@@ -34,6 +34,7 @@ else
             <tr>
                 <th>Imagem</th>
                 <th>Artigo</th>
+                <th>Fornecedor</th>
                 <th>Preço Base</th>
                 <th>Margem (%)</th>
                 <th>Preço Final</th>
@@ -60,25 +61,44 @@ else
                     </td>
                     <td>
                         <strong>@p.Nome</strong>
-                        @* --- NOVA BADGE AQUI --- *@
                         <span class="badge @(p.Condicao == "Novo" ? "bg-success" : "bg-warning text-dark") ms-2">
                             @p.Condicao
                         </span>
                         <br />
                         <small class="text-muted">@(p.Categoria?.Nome ?? "Sem Categoria")</small>
-                        <br />
-                        <small class="text-secondary">Fornecedor: @(p.Fornecedor?.Nome ?? p.Fornecedor?.UserName ?? "Desconhecido")</small>
                     </td>
+
+                    @* --- AQUI ESTÁ A CORREÇÃO DA LÓGICA --- *@
+                    <td>
+                        @if (string.IsNullOrEmpty(p.Fornecedor?.Nome))
+                        {
+                            @* Se Nome é nulo ou Vazio (""), usa o Email. Se não houver user, é Oficial *@
+                            <span class="badge bg-secondary">@(p.Fornecedor?.UserName ?? "Produto Oficial")</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-info text-dark">@p.Fornecedor.Nome</span>
+                        }
+                    </td>
+                    @* -------------------------------------- *@
+
                     <td>@p.PrecoBase.ToString("C")</td>
                     <td style="width:120px">
-                        <input type="number" class="form-control form-control-sm"
-                               value="@margem"
-                               @onchange="@(e => AtualizarMargem(p.Id, e.Value))" />
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control"
+                                   value="@margem"
+                                   @onchange="@(e => AtualizarMargem(p.Id, e.Value))" />
+                            <span class="input-group-text">%</span>
+                        </div>
                     </td>
                     <td class="fw-bold text-success">@precoFinal.ToString("C")</td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-success" @onclick="() => Aprovar(p)">Aprovar</button>
-                        <button class="btn btn-sm btn-danger" @onclick="() => Rejeitar(p)">Recusar</button>
+                        <button class="btn btn-sm btn-success me-1" @onclick="() => Aprovar(p)">
+                            <i class="bi bi-check-lg"></i> Aprovar
+                        </button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Rejeitar(p)">
+                            <i class="bi bi-x-lg"></i> Recusar
+                        </button>
                     </td>
                 </tr>
             }
