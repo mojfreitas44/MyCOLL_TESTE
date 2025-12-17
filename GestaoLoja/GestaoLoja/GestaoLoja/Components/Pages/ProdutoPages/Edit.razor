@@ -79,13 +79,18 @@ else
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Categoria</label>
-                    <InputSelect @bind-Value="Produto.CategoriaId" class="form-select">
-                        @foreach (var cat in categorias)
+                    <label for="categoria" class="form-label">Categoria</label>
+                    @* Adicionamos TValue="int" para garantir que ele entende que o ID é um número *@
+                    <InputSelect id="categoria" @bind-Value="Produto.CategoriaId" TValue="int" class="form-select">
+                        @if (categorias != null)
                         {
-                            <option value="@cat.Id">@cat.Nome</option>
+                            @foreach (var cat in categorias)
+                            {
+                                <option value="@cat.Id">@cat.Nome</option>
+                            }
                         }
                     </InputSelect>
+                    <ValidationMessage For="() => Produto.CategoriaId" class="text-danger" />
                 </div>
 
                 <div class="mb-3">
@@ -226,32 +231,52 @@ else
         var user = authState.User;
         bool isAdminOrStaff = user.IsInRole("Administrador") || user.IsInRole("Funcionario");
 
-        if (!isAdminOrStaff)
+        // 1. Procurar o produto original na base de dados
+        var produtoDb = await context.Produtos.FirstOrDefaultAsync(p => p.Id == Produto!.Id);
+
+        if (produtoDb == null)
         {
-            Produto!.Estado = "Pendente";
+            NavigationManager.NavigateTo("produtos");
+            return;
         }
-        else
+
+        // 2. Validar preços se for Admin
+        if (isAdminOrStaff)
         {
             if (Produto!.PrecoVenda < Produto.PrecoBase)
             {
                 mensagemErro = $"Erro: O Preço de Venda ({Produto.PrecoVenda:C}) não pode ser inferior ao Preço Base ({Produto.PrecoBase:C}).";
                 return;
             }
+            produtoDb.Estado = Produto.Estado;
+            produtoDb.PrecoVenda = Produto.PrecoVenda;
+        }
+        else
+        {
+            // Fornecedor: Produto volta a Pendente ao ser editado
+            produtoDb.Estado = "Pendente";
         }
 
-        context.Attach(Produto!).State = EntityState.Modified;
+        // 3. ATUALIZAR TODOS OS CAMPOS MANUALMENTE (Para não haver falhas)
+        produtoDb.Nome = Produto!.Nome;
+        produtoDb.Descricao = Produto.Descricao;
+        produtoDb.PrecoBase = Produto.PrecoBase;
+        produtoDb.Stock = Produto.Stock;
+        produtoDb.CategoriaId = Produto.CategoriaId; 
+        produtoDb.Condicao = Produto.Condicao;
+        produtoDb.ParaVenda = Produto.ParaVenda;
+        produtoDb.Imagem = Produto.Imagem;
+        produtoDb.ImagemUrl = Produto.ImagemUrl;
 
         try
         {
+            // 4. Gravar as alterações
             await context.SaveChangesAsync();
             NavigationManager.NavigateTo("produtos");
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!context.Produtos.Any(e => e.Id == Produto!.Id))
-                NavigationManager.NavigateTo("produtos");
-            else
-                throw;
+            mensagemErro = "Erro de concorrência ao gravar. Tente novamente.";
         }
     }
 }
