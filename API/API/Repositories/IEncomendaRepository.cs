@@ -15,14 +15,14 @@ namespace API.Repositories
         // Mostra detalhes de uma encomenda específica (se pertencer ao cliente)
         Task<Encomenda?> GetDetalhesEncomenda(string userId, int encomendaId);
 
-        // --- MÉTODOS NOVOS PARA ADMIN (GLOBAIS) ---
         // Admin vê TODAS as encomendas da loja
         Task<IEnumerable<Encomenda>> GetAllEncomendas();
 
         // Admin vê detalhes de QUALQUER encomenda pelo ID
         Task<Encomenda?> GetEncomendaPorId(int id);
-        // -------------------------------------------
 
+        // Permite alterar o estado (ex: "Entregue", "Enviado", "Pago")
+        Task AtualizarEstado(int encomendaId, string novoEstado);
         // Para a área de fornecedor ver as suas vendas
         Task<IEnumerable<VendaFornecedorDTO>> GetVendasDoFornecedor(string fornecedorId);
     }

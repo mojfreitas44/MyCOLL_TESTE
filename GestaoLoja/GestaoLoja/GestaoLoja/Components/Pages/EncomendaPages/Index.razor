@@ -36,6 +36,7 @@
                 <option value="Pendente">Pendente</option>
                 <option value="Pago">Pago</option>
                 <option value="Enviado">Enviado</option>
+                <option value="Entregue">Entregue (A fechar)</option>
                 <option value="Concluido">Concluído</option>
             </select>
         </div>
@@ -85,6 +86,8 @@ else
                         <a href="encomendas/details?id=@enc.Id" class="btn btn-sm btn-outline-info">
                             Detalhes
                         </a>
+
+                        @* LÓGICA RIGOROSA DE ESTADOS *@
                         @if (enc.Estado == "Pendente")
                         {
                             <button class="btn btn-sm btn-success ms-1" @onclick='() => MudarEstado(enc, "Pago")'>Marcar Pago</button>
@@ -95,7 +98,13 @@ else
                         }
                         else if (enc.Estado == "Enviado")
                         {
-                            <button class="btn btn-sm btn-secondary ms-1" @onclick='() => MudarEstado(enc, "Concluido")'>Concluir</button>
+                            @* AQUI: Não mostra botão, apenas aviso *@
+                            <span class="ms-2 small text-muted fst-italic"><i class="bi bi-hourglass-split"></i> Aguarda Cliente</span>
+                        }
+                        else if (enc.Estado == "Entregue")
+                        {
+                            @* AQUI: Só aparece quando o cliente já confirmou *@
+                            <button class="btn btn-sm btn-primary ms-1" @onclick='() => MudarEstado(enc, "Concluido")'>Concluir</button>
                         }
                     </td>
                 </tr>
@@ -123,7 +132,7 @@ else
     private int PaginaAtual = 1;
     private const int TamanhoPagina = 10;
     private int TotalItens = 0;
-    private int TotalPaginas => (int)Math.Ceiling((double)TotalItens / TamanhoPagina);
+    private int TotalPaginas => TotalItens == 0 ? 1 : (int)Math.Ceiling((double)TotalItens / TamanhoPagina);
 
     protected override async Task OnInitializedAsync()
     {
@@ -165,7 +174,7 @@ else
             query = query.Where(e => e.Data < dataFim);
         }
 
-        // 1. Contar (considerando os filtros)
+        // 1. Contar
         TotalItens = await query.CountAsync();
 
         // 2. Buscar Página
@@ -197,24 +206,13 @@ else
     private async Task MudarEstado(Encomenda enc, string novoEstado)
     {
         using var context = DbFactory.CreateDbContext();
-
-        // Buscar a encomenda à BD
         var encomendaDb = await context.Encomendas.FirstOrDefaultAsync(e => e.Id == enc.Id);
 
         if (encomendaDb != null)
         {
-            // --- REMOVIDO: Lógica de Stock ---
-            // Já não precisamos de verificar nem descontar stock aqui.
-            // A API já fez isso quando o cliente clicou em "Checkout".
-            // ---------------------------------
-
-            // Apenas atualizamos o estado (texto)
             encomendaDb.Estado = novoEstado;
-
             await context.SaveChangesAsync();
-
-            // Atualiza a lista na tabela
-            await CarregarDados();
+            await CarregarDados(); // Recarregar tabela
         }
     }
 
@@ -222,7 +220,8 @@ else
     {
         "Pendente" => "bg-danger",
         "Pago" => "bg-warning text-dark",
-        "Enviado" => "bg-primary",
+        "Enviado" => "bg-info text-dark",
+        "Entregue" => "bg-primary",
         "Concluido" => "bg-success",
         _ => "bg-secondary"
     };

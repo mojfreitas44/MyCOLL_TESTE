@@ -148,5 +148,34 @@ namespace API.Controllers
 
             return Ok(dto);
         }
+
+        // 4. CONFIRMAR RECEÇÃO (Ação do Cliente)
+        [HttpPatch("{id}/confirmar-entrega")]
+        [Authorize(Roles = "Cliente")]
+        public async Task<IActionResult> ConfirmarEntrega(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Validar se a encomenda existe e pertence ao cliente
+            var encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId!, id);
+
+            if (encomenda == null)
+                return NotFound(new { Message = "Encomenda não encontrada." });
+
+            // Só permite confirmar se já tiver sido enviada
+            if (encomenda.Estado != "Enviado")
+                return BadRequest(new { Message = "Não é possível confirmar receção de uma encomenda que não foi enviada." });
+
+            try
+            {
+                // Atualiza o estado
+                await _encomendaRepository.AtualizarEstado(id, "Entregue"); // Vais precisar de criar este método no Repository ou fazer direto se preferires
+                return Ok(new { Message = "Encomenda marcada como entregue." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
     }
 }

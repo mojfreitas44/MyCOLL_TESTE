@@ -111,8 +111,6 @@ namespace API.Repositories
                 .ThenInclude(i => i.Produto)
                 .FirstOrDefaultAsync(e => e.Id == encomendaId && e.ClienteId == userId);
         }
-
-        // --- MÉTODOS DE ADMIN (NOVOS) ---
         public async Task<IEnumerable<Encomenda>> GetAllEncomendas()
         {
             return await _context.Set<Encomenda>()
@@ -129,8 +127,22 @@ namespace API.Repositories
                 .ThenInclude(i => i.Produto)
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
-        // -------------------------------
+        public async Task AtualizarEstado(int encomendaId, string novoEstado)
+        {
+            // 1. Procurar a encomenda (não precisamos dos Itens aqui, só da encomenda base)
+            var encomenda = await _context.Set<Encomenda>().FindAsync(encomendaId);
 
+            if (encomenda == null)
+            {
+                throw new Exception("Encomenda não encontrada.");
+            }
+
+            // 2. Atualizar o estado
+            encomenda.Estado = novoEstado;
+
+            // 3. Guardar na BD
+            await _context.SaveChangesAsync();
+        }
         public async Task<IEnumerable<VendaFornecedorDTO>> GetVendasDoFornecedor(string fornecedorId)
         {
             return await _context.Set<EncomendaItem>()
