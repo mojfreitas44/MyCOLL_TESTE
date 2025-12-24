@@ -82,7 +82,7 @@
         }
 
         // --- ATRIBUIÇÃO AUTOMÁTICA DE ROLE (Cliente) ---
-        await UserManager.AddToRoleAsync(user, Roles.Cliente);
+        await UserManager.AddToRoleAsync(user, "Cliente");
         // ------------------------------------------------
 
         Logger.LogInformation("User created a new account with password.");

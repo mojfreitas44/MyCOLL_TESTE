@@ -13,14 +13,14 @@ namespace API.Data
         public string Apelido { get; set; } = string.Empty;
 
         [PersonalData]
-        public long NIF { get; set; } // Agora é long para combinar com o AuthController
+        public long NIF { get; set; } 
 
         [PersonalData]
         public string Telemovel { get; set; } = string.Empty;
 
         // Dados de Morada
         [PersonalData]
-        public string Rua { get; set; } = string.Empty;
+        public string Rua { get; set; } = string.Empty; 
 
         [PersonalData]
         public string Localidade { get; set; } = string.Empty;
@@ -35,7 +35,7 @@ namespace API.Data
         public string Pais { get; set; } = string.Empty;
 
         // Dados de Sistema
-        public string Estado { get; set; } = "Pendente";
-        public DateTime DataRegisto { get; set; } = DateTime.UtcNow;
+        public string Estado { get; set; } = "Pendente"; 
+        public DateTime DataRegisto { get; set; } = DateTime.UtcNow; 
     }
 }

@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36603.0 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClienteMAUI", "ClienteMAUI\ClienteMAUI.csproj", "{81F8F901-28B9-4115-AB26-54110CAF452E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCLAPI", "RCLAPI\RCLAPI.csproj", "{96B90E75-B6A7-412F-A038-21FF443B7B6B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{81F8F901-28B9-4115-AB26-54110CAF452E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81F8F901-28B9-4115-AB26-54110CAF452E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81F8F901-28B9-4115-AB26-54110CAF452E}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{81F8F901-28B9-4115-AB26-54110CAF452E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81F8F901-28B9-4115-AB26-54110CAF452E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81F8F901-28B9-4115-AB26-54110CAF452E}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{96B90E75-B6A7-412F-A038-21FF443B7B6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96B90E75-B6A7-412F-A038-21FF443B7B6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96B90E75-B6A7-412F-A038-21FF443B7B6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96B90E75-B6A7-412F-A038-21FF443B7B6B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {97AC4C84-9FE9-4863-8D1A-9F1BEA82D3A2}
+	EndGlobalSection
+EndGlobal

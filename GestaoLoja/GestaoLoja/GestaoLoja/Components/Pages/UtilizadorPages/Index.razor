@@ -163,15 +163,25 @@ else
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
-        if (userDb == null || userDb.Estado != "Ativo")
+
+        // Validação de segurança básica
+        if (userDb == null || (userDb.Estado != "Ativo" && userDb.Email != "admin@loja.pt"))
         {
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
 
         currentUserId = userDb.Id;
+
+        // Verifica se é Administrador (usando a role nova)
         euSouAdmin = await UserManager.IsInRoleAsync(userDb, "Administrador");
-        todasRoles = await RoleManager.Roles.Select(r => r.Name!).OrderBy(n => n).ToListAsync();
+
+        // --- CORREÇÃO AQUI: Filtramos para ignorar a role "Admin" antiga ---
+        todasRoles = await RoleManager.Roles
+                                      .Select(r => r.Name!)
+                                      .Where(r => r != "Admin") // Esconde o lixo antigo
+                                      .OrderBy(n => n)
+                                      .ToListAsync();
 
         await CarregarUtilizadores();
     }
@@ -179,16 +189,12 @@ else
     private async Task CarregarUtilizadores()
     {
         var query = UserManager.Users.AsQueryable();
-
         if (!string.IsNullOrEmpty(FiltroTexto))
         {
-            // Filtra apenas por Email
             query = query.Where(u => u.Email!.Contains(FiltroTexto));
         }
 
-        // Carrega utilizadores para filtrar por Role em memória
         var usersTemp = await query.ToListAsync();
-
         userRoles.Clear();
         var usersFiltrados = new List<ApplicationUser>();
 
@@ -196,6 +202,9 @@ else
         {
             var roles = await UserManager.GetRolesAsync(user);
             var rolePrincipal = roles.FirstOrDefault() ?? "Sem Role";
+
+            // Se a pessoa tiver a role "Admin" (antiga), visualmente tratamos como "Administrador"
+            if (rolePrincipal == "Admin") rolePrincipal = "Administrador";
 
             if (string.IsNullOrEmpty(FiltroRole) || rolePrincipal == FiltroRole)
             {
@@ -209,7 +218,6 @@ else
             .Skip((PaginaAtual - 1) * TamanhoPagina)
             .Take(TamanhoPagina)
             .ToList();
-
         TemMaisPaginas = (PaginaAtual * TamanhoPagina) < total;
     }
 
@@ -226,6 +234,7 @@ else
     private bool PodeGerirRole(string roleAlvo)
     {
         if (euSouAdmin) return true;
+        // Permite gerir se for Cliente, Fornecedor ou Sem Role
         if (roleAlvo == "Cliente" || roleAlvo == "Fornecedor" || roleAlvo == "Sem Role") return true;
         return false;
     }
@@ -235,8 +244,11 @@ else
     private async Task AlterarRole(ApplicationUser user, string? novaRole)
     {
         if (string.IsNullOrEmpty(novaRole)) return;
-        if (user.Email == "admin@mycoll.pt") return;
 
+        // Proteção do Super Admin (ajusta o email se usares outro)
+        if (user.Email == "admin@loja.pt" || user.Email == "admin@mycoll.pt") return;
+
+        // Regra: Só Admin pode promover a Admin/Funcionario
         if (!euSouAdmin && (novaRole == "Administrador" || novaRole == "Funcionario")) return;
 
         var rolesAtuais = await UserManager.GetRolesAsync(user);
@@ -249,7 +261,7 @@ else
 
     private async Task AlterarEstado(ApplicationUser user, string novoEstado)
     {
-        if (user.Email == "admin@mycoll.pt") return;
+        if (user.Email == "admin@loja.pt" || user.Email == "admin@mycoll.pt") return;
         user.Estado = novoEstado;
         await UserManager.UpdateAsync(user);
         await CarregarUtilizadores();
@@ -257,7 +269,8 @@ else
 
     private async Task ApagarUtilizador(ApplicationUser user)
     {
-        if (user.Email == "admin@mycoll.pt") return;
+        if (user.Email == "admin@loja.pt" || user.Email == "admin@mycoll.pt") return;
+
         bool confirmacao = await JSRuntime.InvokeAsync<bool>("confirm", $"Deseja mesmo apagar {user.Email}?");
         if (confirmacao)
         {
