@@ -1,11 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36603.0 d17.14
+VisualStudioVersion = 17.14.36603.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClienteMAUI", "ClienteMAUI\ClienteMAUI.csproj", "{81F8F901-28B9-4115-AB26-54110CAF452E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCLAPI", "RCLAPI\RCLAPI.csproj", "{96B90E75-B6A7-412F-A038-21FF443B7B6B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCLComum", "RCLComum\RCLComum.csproj", "{EDB24C77-3B7E-4057-AC76-B1237B5EFA7A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCLProdutos", "RCLProdutos\RCLProdutos.csproj", "{C6072FCC-EB72-428D-B148-B5D634E5A364}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCLCompras", "RCLCompras\RCLCompras.csproj", "{5B0E25C5-F3C0-4F6E-861F-C3F99C3B1135}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RCLImages", "RCLImages\RCLImages.csproj", "{7D584B7A-B6A8-4C59-8BA9-22947C4E0C3A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,6 +31,22 @@ Global
 		{96B90E75-B6A7-412F-A038-21FF443B7B6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{96B90E75-B6A7-412F-A038-21FF443B7B6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{96B90E75-B6A7-412F-A038-21FF443B7B6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDB24C77-3B7E-4057-AC76-B1237B5EFA7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDB24C77-3B7E-4057-AC76-B1237B5EFA7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDB24C77-3B7E-4057-AC76-B1237B5EFA7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDB24C77-3B7E-4057-AC76-B1237B5EFA7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6072FCC-EB72-428D-B148-B5D634E5A364}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6072FCC-EB72-428D-B148-B5D634E5A364}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6072FCC-EB72-428D-B148-B5D634E5A364}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6072FCC-EB72-428D-B148-B5D634E5A364}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B0E25C5-F3C0-4F6E-861F-C3F99C3B1135}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B0E25C5-F3C0-4F6E-861F-C3F99C3B1135}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B0E25C5-F3C0-4F6E-861F-C3F99C3B1135}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B0E25C5-F3C0-4F6E-861F-C3F99C3B1135}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D584B7A-B6A8-4C59-8BA9-22947C4E0C3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D584B7A-B6A8-4C59-8BA9-22947C4E0C3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D584B7A-B6A8-4C59-8BA9-22947C4E0C3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D584B7A-B6A8-4C59-8BA9-22947C4E0C3A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
