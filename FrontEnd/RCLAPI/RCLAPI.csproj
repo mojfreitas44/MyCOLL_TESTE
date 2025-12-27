@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <Folder Include="Auth\" />
+    <Folder Include="DTO\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 
 
