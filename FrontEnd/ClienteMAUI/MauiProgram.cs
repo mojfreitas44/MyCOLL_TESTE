@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using RCLAPI;
 
 namespace ClienteMAUI
 {
@@ -20,7 +21,7 @@ namespace ClienteMAUI
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
-
+            builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(AppConfig.BaseUrl) });
             return builder.Build();
         }
     }

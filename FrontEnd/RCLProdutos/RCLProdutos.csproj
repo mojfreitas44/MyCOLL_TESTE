@@ -1,15 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.0" />
+	</ItemGroup>
 
   <ItemGroup>
     <Folder Include="Components\Pages\" />
@@ -17,11 +16,10 @@
     <Folder Include="Shared\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\RCLAPI\RCLAPI.csproj" />
-    <ProjectReference Include="..\RCLImages\RCLImages.csproj" />
-  </ItemGroup>
-
-
+	<ItemGroup>
+		<ProjectReference Include="..\RCLAPI\RCLAPI.csproj" />
+		<ProjectReference Include="..\RCLImages\RCLImages.csproj" />
+		<ProjectReference Include="..\RCLComum\RCLComum.csproj" />
+	</ItemGroup>
 
 </Project>
