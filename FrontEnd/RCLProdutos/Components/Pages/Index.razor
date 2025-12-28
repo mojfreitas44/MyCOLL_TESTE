@@ -1,0 +1,40 @@
+﻿@page "/produtos"
+@inject ProdutosClient ProdutosService
+
+<h3>Catálogo de Colecionáveis</h3>
+
+@if (produtos == null)
+{
+    <p><em>A carregar... (Verifica se a API está ligada!)</em></p>
+}
+else if (!produtos.Any())
+{
+    <p>A API respondeu, mas não tens produtos na base de dados.</p>
+}
+else
+{
+    <div class="row">
+        @foreach (var p in produtos)
+        {
+            <div class="col-12 col-sm-6 col-md-4 mb-4" style="border:1px solid #ccc; padding:10px; margin:10px;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">@p.Nome</h5>
+                        <p class="card-text">@p.Descricao</p>
+                        <p class="text-success"><strong>@p.PrecoVenda €</strong></p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<ProdutoDTO>? produtos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Vai buscar os dados à API
+        produtos = await ProdutosService.GetProdutosAsync();
+    }
+}

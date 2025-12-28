@@ -1,6 +1,12 @@
-﻿<Router AppAssembly="@typeof(MauiProgram).Assembly">
+﻿<Router AppAssembly="@typeof(MauiProgram).Assembly"
+        AdditionalAssemblies="new[] { typeof(RCLComum.Components.Layout.MainLayout).Assembly }">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(RCLComum.Components.Layout.MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(RCLComum.Components.Layout.MainLayout)">
+            <p role="alert">Desculpa, não encontrámos nada neste endereço (404).</p>
+        </LayoutView>
+    </NotFound>
 </Router>
