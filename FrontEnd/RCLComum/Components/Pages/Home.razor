@@ -3,70 +3,89 @@
 
 <PageTitle>MyCOLL - Home</PageTitle>
 
-<div class="container mt-5">
-    
-    <div class="row align-items-center p-4 mb-5 bg-white rounded shadow-sm border">
-        <div class="col-lg-7">
-            <h1 class="display-4 fw-bold text-dark">Bem-vindo ao MyCOLL</h1>
-            <p class="lead text-secondary my-3">
-                A plataforma definitiva para gerir e expandir a tua coleção. 
-                Encontra itens raros, organiza as tuas compras e junta-te à comunidade.
+<div class="container mt-4 mb-5">
+
+    <div class="row align-items-center p-4 p-lg-5 mb-5 rounded-4 shadow-sm border bg-white main-banner">
+        <div class="col-lg-6 mb-4 mb-lg-0">
+            <h1 class="display-4 fw-bold text-dark mb-3">
+                <span class="text-primary">Descobre</span> o Valor<br>da tua Coleção
+            </h1>
+            <p class="lead text-muted mb-4">
+                O MyCOLL é o lugar onde os colecionadores se encontram.
+                Gere o teu inventário, encontra aquele item raro que falta e partilha a tua paixão.
             </p>
-            <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-4">
-                <a href="produtos" class="btn btn-primary btn-lg px-4 me-md-2 rounded-pill shadow-sm">
-                    <i class="bi bi-collection me-2"></i>Ver Catálogo
+            <div class="d-flex gap-3">
+                <a href="produtos" class="btn btn-primary btn-lg px-4 rounded-pill shadow-sm hover-up">
+                    <i class="bi bi-search me-2"></i>Ver Catálogo
                 </a>
-                
                 <AuthorizeView>
                     <NotAuthorized>
-                        <a href="registar" class="btn btn-outline-dark btn-lg px-4 rounded-pill">Criar Conta</a>
+                        <a href="registar" class="btn btn-outline-dark btn-lg px-4 rounded-pill hover-up">
+                            Criar Conta
+                        </a>
                     </NotAuthorized>
                 </AuthorizeView>
             </div>
         </div>
-        <div class="col-lg-5 text-center d-none d-lg-block">
-            <img src="_content/RCLImages/images/pngegg.png" class="img-fluid" style="max-height: 300px;" alt="Coleção" />
+
+        <div class="col-lg-6 text-center">
+            <img src="_content/RCLImages/images/Tesouro.png"
+                 class="img-fluid rounded-4 shadow-lg hero-image"
+                 alt="Tesouro MyCOLL" />
         </div>
     </div>
 
-    <div class="row g-4 mb-5">
-        
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-dark">Acesso Rápido</h2>
+        <div class="divider mx-auto bg-primary"></div>
+    </div>
+
+    <div class="row g-4">
+
         <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm hover-card text-center py-4">
-                <div class="card-body">
-                    <img src="_content/RCLImages/images/icocatalog.png" width="64" class="mb-3" alt="Catálogo" />
-                    <h3 class="h5 card-title">Catálogo Completo</h3>
-                    <p class="card-text text-muted small">Explora centenas de produtos disponíveis para entrega imediata.</p>
-                    <a href="produtos" class="btn btn-link text-decoration-none stretched-link">Ir para Colecionáveis &rarr;</a>
+            <div class="card h-100 border-0 shadow-sm custom-card text-center">
+                <div class="card-body p-4">
+                    <div class="icon-box bg-light text-primary mx-auto mb-3 shadow-sm">
+                        <img src="_content/RCLImages/images/icocatalog.png" width="50" alt="Catálogo" />
+                    </div>
+                    <h4 class="card-title fw-bold">Catálogo</h4>
+                    <p class="card-text text-muted">Explora centenas de itens raros e exclusivos disponíveis.</p>
+                    <a href="produtos" class="stretched-link"></a>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm hover-card text-center py-4">
-                <div class="card-body">
-                    <img src="_content/RCLImages/images/cart.png" width="64" class="mb-3" alt="Carrinho" />
-                    <h3 class="h5 card-title">As tuas Compras</h3>
-                    <p class="card-text text-muted small">Vê o que já selecionaste e finaliza a tua encomenda com segurança.</p>
-                    <a href="carrinho" class="btn btn-link text-decoration-none stretched-link">Ver Carrinho &rarr;</a>
+            <div class="card h-100 border-0 shadow-sm custom-card text-center">
+                <div class="card-body p-4">
+                    <div class="icon-box bg-light text-success mx-auto mb-3 shadow-sm">
+                        <img src="_content/RCLImages/images/cart.png" width="50" alt="Carrinho" />
+                    </div>
+                    <h4 class="card-title fw-bold">Carrinho</h4>
+                    <p class="card-text text-muted">Vê as tuas compras pendentes e finaliza a encomenda.</p>
+                    <a href="carrinho" class="stretched-link"></a>
                 </div>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm hover-card text-center py-4">
-                <div class="card-body">
-                    <img src="_content/RCLImages/images/icoperfil.png" width="64" class="mb-3" alt="Perfil" />
-                    <h3 class="h5 card-title">A tua Conta</h3>
-                    
+            <div class="card h-100 border-0 shadow-sm custom-card text-center">
+                <div class="card-body p-4">
+                    <div class="icon-box bg-light text-info mx-auto mb-3 shadow-sm">
+                        <img src="_content/RCLImages/images/icoperfil.png" width="50" alt="Perfil" />
+                    </div>
+
                     <AuthorizeView>
                         <Authorized>
-                            <p class="text-success fw-bold mb-1">Olá, @context.User.Identity?.Name</p>
-                            <p class="card-text text-muted small">Gere os teus dados e histórico.</p>
+                            <h4 class="card-title fw-bold">A Minha Conta</h4>
+                            <p class="text-success fw-bold mb-0">Olá, @context.User.Identity?.Name</p>
+                            <span class="text-muted small">Gere o teu perfil</span>
+                            <a href="perfil" class="stretched-link"></a>
                         </Authorized>
                         <NotAuthorized>
-                            <p class="card-text text-muted small">Faz login para acederes aos teus dados.</p>
-                            <a href="login" class="btn btn-sm btn-outline-primary mt-2 position-relative" style="z-index: 2;">Entrar</a>
+                            <h4 class="card-title fw-bold">Login</h4>
+                            <p class="card-text text-muted">Entra para gerir as tuas encomendas.</p>
+                            <a href="login" class="stretched-link"></a>
                         </NotAuthorized>
                     </AuthorizeView>
                 </div>
@@ -77,12 +96,51 @@
 </div>
 
 <style>
-    .hover-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        background-color: #ffffff;
+    /* Estilo da Imagem do Tesouro */
+    .hero-image {
+        max-height: 400px;
+        object-fit: cover; /* Garante que a imagem não fica esticada */
+        border: 4px solid #fff; /* Moldura branca */
+        transition: transform 0.3s ease;
     }
-    .hover-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+
+        .hero-image:hover {
+            transform: scale(1.02); /* Ligeiro zoom ao passar o rato */
+        }
+
+    /* Cards */
+    .custom-card {
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        background: #fff;
+        position: relative; /* Necessário para o stretched-link funcionar */
+    }
+
+        .custom-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        }
+
+    /* Bolas dos Ícones */
+    .icon-box {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Linha divisória pequena */
+    .divider {
+        height: 4px;
+        width: 60px;
+        border-radius: 2px;
+        opacity: 0.7;
+    }
+
+    /* Efeito nos botões */
+    .hover-up:hover {
+        transform: translateY(-2px);
     }
 </style>
