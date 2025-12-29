@@ -9,7 +9,7 @@
         <div class="col-md-6">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white text-center">
-                    <h3>🔐 Login</h3>
+                    <h3>🔐 Iniciar Sessão</h3>
                 </div>
                 <div class="card-body">
                     <EditForm Model="@loginModel" OnValidSubmit="FazerLogin">
@@ -17,13 +17,13 @@
 
                         <div class="mb-3">
                             <label>Email</label>
-                            <InputText @bind-Value="loginModel.Email" class="form-control" />
+                            <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="exemplo@email.com" />
                             <ValidationMessage For="@(() => loginModel.Email)" />
                         </div>
 
                         <div class="mb-3">
                             <label>Password</label>
-                            <InputText @bind-Value="loginModel.Password" type="password" class="form-control" />
+                            <InputText @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="******" />
                             <ValidationMessage For="@(() => loginModel.Password)" />
                         </div>
 
@@ -32,11 +32,13 @@
 
                     @if (!string.IsNullOrEmpty(mensagemErro))
                     {
-                        <div class="alert alert-danger mt-3">@mensagemErro</div>
+                        <div class="alert alert-danger mt-3 text-center">
+                            @mensagemErro
+                        </div>
                     }
                 </div>
                 <div class="card-footer text-center">
-                    <a href="registar">Criar conta nova</a>
+                    <small>Ainda não tens conta? <a href="registar">Cria aqui</a></small>
                 </div>
             </div>
         </div>
@@ -49,11 +51,23 @@
 
     private async Task FazerLogin()
     {
+        mensagemErro = ""; // Limpa erros anteriores
         var resposta = await Auth.Login(loginModel);
 
         if (resposta.Sucesso)
         {
-            Nav.NavigateTo("/");
+            string role = resposta.Role?.ToLower() ?? "";
+
+            if (role == "cliente" || role == "fornecedor")
+            {
+                Nav.NavigateTo("/"); // Entra na app
+            }
+            else
+            {
+                // Se for Admin, Funcionario ou outro, EXPULSA
+                await Auth.Logout();
+                mensagemErro = "Acesso negado. Esta aplicação é exclusiva para Clientes e Fornecedores.";
+            }
         }
         else
         {

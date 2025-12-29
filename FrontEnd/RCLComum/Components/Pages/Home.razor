@@ -5,8 +5,8 @@
 
 <div class="container mt-4 mb-5">
 
-    <div class="row align-items-center p-4 p-lg-5 mb-5 rounded-4 shadow-sm border bg-white main-banner">
-        <div class="col-lg-6 mb-4 mb-lg-0">
+    <div class="row align-items-center p-4 p-lg-5 mb-5 rounded-4 shadow-sm border bg-white main-banner overflow-hidden position-relative">
+        <div class="col-lg-6 mb-4 mb-lg-0 position-relative" style="z-index: 2;">
             <h1 class="display-4 fw-bold text-dark mb-3">
                 <span class="text-primary">Descobre</span> o Valor<br>da tua Coleção
             </h1>
@@ -28,9 +28,9 @@
             </div>
         </div>
 
-        <div class="col-lg-6 text-center">
+        <div class="col-lg-6 text-center position-relative" style="z-index: 1;">
             <img src="_content/RCLImages/images/Tesouro.png"
-                 class="img-fluid rounded-4 shadow-lg hero-image"
+                 class="img-fluid hero-image floating-img"
                  alt="Tesouro MyCOLL" />
         </div>
     </div>
@@ -45,8 +45,11 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm custom-card text-center">
                 <div class="card-body p-4">
-                    <div class="icon-box bg-light text-primary mx-auto mb-3 shadow-sm">
-                        <img src="_content/RCLImages/images/icocatalog.png" width="50" alt="Catálogo" />
+                    <div class="icon-box bg-light mx-auto mb-3 shadow-sm p-0 overflow-hidden border border-2 border-white">
+                        <img src="_content/RCLImages/images/Catalogo.jpg"
+                             class="img-fluid"
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             alt="Catálogo" />
                     </div>
                     <h4 class="card-title fw-bold">Catálogo</h4>
                     <p class="card-text text-muted">Explora centenas de itens raros e exclusivos disponíveis.</p>
@@ -71,8 +74,11 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm custom-card text-center">
                 <div class="card-body p-4">
-                    <div class="icon-box bg-light text-info mx-auto mb-3 shadow-sm">
-                        <img src="_content/RCLImages/images/icoperfil.png" width="50" alt="Perfil" />
+                    <div class="icon-box bg-light mx-auto mb-3 shadow-sm p-0 overflow-hidden border border-2 border-white">
+                        <img src="_content/RCLImages/images/User.jpg"
+                             class="img-fluid"
+                             style="width: 100%; height: 100%; object-fit: cover;"
+                             alt="Perfil" />
                     </div>
 
                     <AuthorizeView>
@@ -94,53 +100,3 @@
 
     </div>
 </div>
-
-<style>
-    /* Estilo da Imagem do Tesouro */
-    .hero-image {
-        max-height: 400px;
-        object-fit: cover; /* Garante que a imagem não fica esticada */
-        border: 4px solid #fff; /* Moldura branca */
-        transition: transform 0.3s ease;
-    }
-
-        .hero-image:hover {
-            transform: scale(1.02); /* Ligeiro zoom ao passar o rato */
-        }
-
-    /* Cards */
-    .custom-card {
-        border-radius: 15px;
-        transition: all 0.3s ease;
-        background: #fff;
-        position: relative; /* Necessário para o stretched-link funcionar */
-    }
-
-        .custom-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-        }
-
-    /* Bolas dos Ícones */
-    .icon-box {
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Linha divisória pequena */
-    .divider {
-        height: 4px;
-        width: 60px;
-        border-radius: 2px;
-        opacity: 0.7;
-    }
-
-    /* Efeito nos botões */
-    .hover-up:hover {
-        transform: translateY(-2px);
-    }
-</style>

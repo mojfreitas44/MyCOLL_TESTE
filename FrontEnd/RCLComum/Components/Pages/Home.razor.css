@@ -1,0 +1,73 @@
+/* Home.razor.css */
+
+/* Banner e Imagem */
+.main-banner {
+    border-radius: 30px !important;
+}
+
+.hero-image {
+    max-height: 450px;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.15));
+}
+
+/* Animação - Funciona perfeitamente aqui */
+.floating-img {
+    animation: flutuar 6s ease-in-out infinite;
+}
+
+@keyframes flutuar {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+/* Cards */
+.custom-card {
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    background: #fff;
+    position: relative;
+    cursor: pointer;
+}
+
+    .custom-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+
+        /* Efeito na bola do ícone ao passar o rato no card */
+        .custom-card:hover .icon-box {
+            transform: scale(1.1);
+        }
+
+/* Bolas dos ícones */
+.icon-box {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+/* Utilitários */
+.divider {
+    height: 4px;
+    width: 60px;
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+.hover-up:hover {
+    transform: translateY(-2px);
+}
