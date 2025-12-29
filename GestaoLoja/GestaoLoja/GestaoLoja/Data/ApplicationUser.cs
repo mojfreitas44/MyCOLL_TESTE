@@ -12,7 +12,7 @@ namespace GestaoLoja.Data
         public string Apelido { get; set; } = string.Empty;
 
         [PersonalData]
-        public long NIF { get; set; } // Mudámos para LONG
+        public long NIF { get; set; } 
 
         [PersonalData]
         public string Telemovel { get; set; } = string.Empty;
