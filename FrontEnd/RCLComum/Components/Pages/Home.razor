@@ -1,13 +1,88 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
 
-<PageTitle>MyCOLL - Início</PageTitle>
+<PageTitle>MyCOLL - Home</PageTitle>
 
-<h1>Bem-vindo ao MyCOLL!</h1>
+<div class="container mt-5">
+    
+    <div class="row align-items-center p-4 mb-5 bg-white rounded shadow-sm border">
+        <div class="col-lg-7">
+            <h1 class="display-4 fw-bold text-dark">Bem-vindo ao MyCOLL</h1>
+            <p class="lead text-secondary my-3">
+                A plataforma definitiva para gerir e expandir a tua coleção. 
+                Encontra itens raros, organiza as tuas compras e junta-te à comunidade.
+            </p>
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-4">
+                <a href="produtos" class="btn btn-primary btn-lg px-4 me-md-2 rounded-pill shadow-sm">
+                    <i class="bi bi-collection me-2"></i>Ver Catálogo
+                </a>
+                
+                <AuthorizeView>
+                    <NotAuthorized>
+                        <a href="registar" class="btn btn-outline-dark btn-lg px-4 rounded-pill">Criar Conta</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+        <div class="col-lg-5 text-center d-none d-lg-block">
+            <img src="_content/RCLImages/images/pngegg.png" class="img-fluid" style="max-height: 300px;" alt="Coleção" />
+        </div>
+    </div>
 
-<p>A tua app de gestão de colecionáveis favorita.</p>
+    <div class="row g-4 mb-5">
+        
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm hover-card text-center py-4">
+                <div class="card-body">
+                    <img src="_content/RCLImages/images/icocatalog.png" width="64" class="mb-3" alt="Catálogo" />
+                    <h3 class="h5 card-title">Catálogo Completo</h3>
+                    <p class="card-text text-muted small">Explora centenas de produtos disponíveis para entrega imediata.</p>
+                    <a href="produtos" class="btn btn-link text-decoration-none stretched-link">Ir para Colecionáveis &rarr;</a>
+                </div>
+            </div>
+        </div>
 
-<div class="alert alert-info">
-    Se vês esta mensagem, o Frontend já está a funcionar! 🚀
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm hover-card text-center py-4">
+                <div class="card-body">
+                    <img src="_content/RCLImages/images/cart.png" width="64" class="mb-3" alt="Carrinho" />
+                    <h3 class="h5 card-title">As tuas Compras</h3>
+                    <p class="card-text text-muted small">Vê o que já selecionaste e finaliza a tua encomenda com segurança.</p>
+                    <a href="carrinho" class="btn btn-link text-decoration-none stretched-link">Ver Carrinho &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm hover-card text-center py-4">
+                <div class="card-body">
+                    <img src="_content/RCLImages/images/icoperfil.png" width="64" class="mb-3" alt="Perfil" />
+                    <h3 class="h5 card-title">A tua Conta</h3>
+                    
+                    <AuthorizeView>
+                        <Authorized>
+                            <p class="text-success fw-bold mb-1">Olá, @context.User.Identity?.Name</p>
+                            <p class="card-text text-muted small">Gere os teus dados e histórico.</p>
+                        </Authorized>
+                        <NotAuthorized>
+                            <p class="card-text text-muted small">Faz login para acederes aos teus dados.</p>
+                            <a href="login" class="btn btn-sm btn-outline-primary mt-2 position-relative" style="z-index: 2;">Entrar</a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
 
-<img src="_content/RCLImages/images/dotnet_bot.svg" alt="Bot" width="200" />
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background-color: #ffffff;
+    }
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+</style>

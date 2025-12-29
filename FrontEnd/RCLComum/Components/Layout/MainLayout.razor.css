@@ -2,34 +2,39 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8f9fa; /* Fundo cinza muito claro para o corpo */
 }
 
 main {
     flex: 1;
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+/* Cor da Barra de Topo */
+.bg-custom {
+    /* MUDAR A COR AQUI: */
+    background-color: #1b263b !important; /* Azul Escuro Profissional */
+    /* Exemplo Verde: #198754 */
+    /* Exemplo Preto: #000000 */
 }
 
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
+.content {
+    padding-top: 1.1rem;
 }
 
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
+/* Ajustes para os links ficarem bonitos */
+.nav-link {
+    font-size: 1rem;
+    padding: 0.5rem 1rem !important;
+    transition: color 0.2s;
+}
+
+    .nav-link:hover {
+        color: #fff !important; /* Branco ao passar o rato */
+        font-weight: 500;
     }
 
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
+/* Ícones */
+.bi {
+    margin-right: 5px;
 }

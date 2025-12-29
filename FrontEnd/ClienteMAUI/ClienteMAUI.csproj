@@ -20,6 +20,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
+		<NoWarn>$(NoWarn);CA1416</NoWarn>
 
         <!-- Display name -->
         <ApplicationTitle>ClienteMAUI</ApplicationTitle>

@@ -1,0 +1,63 @@
+﻿@page "/login"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>🔐 Login</h3>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@loginModel" OnValidSubmit="FazerLogin">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label>Email</label>
+                            <InputText @bind-Value="loginModel.Email" class="form-control" />
+                            <ValidationMessage For="@(() => loginModel.Email)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>Password</label>
+                            <InputText @bind-Value="loginModel.Password" type="password" class="form-control" />
+                            <ValidationMessage For="@(() => loginModel.Password)" />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                    </EditForm>
+
+                    @if (!string.IsNullOrEmpty(mensagemErro))
+                    {
+                        <div class="alert alert-danger mt-3">@mensagemErro</div>
+                    }
+                </div>
+                <div class="card-footer text-center">
+                    <a href="registar">Criar conta nova</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new LoginModel();
+    private string mensagemErro = "";
+
+    private async Task FazerLogin()
+    {
+        var resposta = await Auth.Login(loginModel);
+
+        if (resposta.Sucesso)
+        {
+            Nav.NavigateTo("/");
+        }
+        else
+        {
+            mensagemErro = resposta.MensagemErro;
+        }
+    }
+}

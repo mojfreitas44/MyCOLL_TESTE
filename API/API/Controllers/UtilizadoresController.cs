@@ -72,6 +72,7 @@ namespace API.Controllers
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Email, user.Email ?? utilizador.Email),
+                new Claim(ClaimTypes.Name, user.Nome ?? user.Email ?? "Utilizador"),
                 new Claim(ClaimTypes.Role, role),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };

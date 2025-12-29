@@ -1,12 +1,27 @@
-﻿<Router AppAssembly="@typeof(MauiProgram).Assembly"
-        AdditionalAssemblies="new[] { typeof(RCLComum.Components.Layout.MainLayout).Assembly }">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(RCLComum.Components.Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(RCLComum.Components.Layout.MainLayout)">
-            <p role="alert">Desculpa, não encontrámos nada neste endereço (404).</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+﻿@using RCLComum.Components.Layout
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Authorization
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(MauiProgram).Assembly"
+            AdditionalAssemblies="new[] {
+                            typeof(RCLComum.Components.Layout.MainLayout).Assembly,
+                            typeof(RCLProdutos.Components.Pages.Index).Assembly
+                        }">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(RCLComum.Components.Layout.MainLayout)">
+                <NotAuthorized>
+                    <LayoutView Layout="@typeof(RCLComum.Components.Layout.MainLayout)">
+                        <p role="alert">Não tens permissão para ver esta página.</p>
+                    </LayoutView>
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(RCLComum.Components.Layout.MainLayout)">
+                <p role="alert">Desculpa, não encontrámos nada neste endereço (404).</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>

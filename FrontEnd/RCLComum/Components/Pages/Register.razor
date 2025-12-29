@@ -1,0 +1,120 @@
+﻿@page "/registar"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<div class="container mt-4 mb-5">
+    <div class="card shadow">
+        <div class="card-header bg-success text-white text-center">
+            <h3>📝 Registo de Cliente</h3>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@registerModel" OnValidSubmit="FazerRegisto">
+                <DataAnnotationsValidator />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Nome</label>
+                        <InputText @bind-Value="registerModel.Nome" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Nome)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Apelido</label>
+                        <InputText @bind-Value="registerModel.Apelido" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Apelido)" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>NIF</label>
+                        <InputNumber @bind-Value="registerModel.NIF" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.NIF)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Telemóvel</label>
+                        <InputText @bind-Value="registerModel.Telemovel" class="form-control" />
+                    </div>
+                </div>
+
+                <hr />
+                <h5>Morada</h5>
+
+                <div class="mb-3">
+                    <label>Rua</label>
+                    <InputText @bind-Value="registerModel.Rua" class="form-control" />
+                    <ValidationMessage For="@(() => registerModel.Rua)" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Código Postal</label>
+                        <InputText @bind-Value="registerModel.CodigoPostal" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.CodigoPostal)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Cidade</label>
+                        <InputText @bind-Value="registerModel.Cidade" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Cidade)" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>País</label>
+                        <InputText @bind-Value="registerModel.Pais" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Pais)" />
+                    </div>
+                </div>
+
+                <hr />
+                <h5>Acesso</h5>
+
+                <div class="mb-3">
+                    <label>Email</label>
+                    <InputText @bind-Value="registerModel.Email" class="form-control" />
+                    <ValidationMessage For="@(() => registerModel.Email)" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Password</label>
+                        <InputText @bind-Value="registerModel.Password" type="password" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.Password)" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Confirmar Password</label>
+                        <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control" />
+                        <ValidationMessage For="@(() => registerModel.ConfirmPassword)" />
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 mt-3">Criar Conta</button>
+            </EditForm>
+
+            @if (!string.IsNullOrEmpty(mensagem))
+            {
+                <div class="alert alert-info mt-3">@mensagem</div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel registerModel = new RegisterModel();
+    private string mensagem = "";
+
+    private async Task FazerRegisto()
+    {
+        bool sucesso = await Auth.Registar(registerModel);
+
+        if (sucesso)
+        {
+            mensagem = "Conta criada com sucesso! A redirecionar para login...";
+            await Task.Delay(2000);
+            Nav.NavigateTo("/login");
+        }
+        else
+        {
+            mensagem = "Erro ao registar. Verifique os dados.";
+        }
+    }
+}

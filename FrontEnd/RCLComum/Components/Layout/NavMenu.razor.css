@@ -1,41 +1,53 @@
-﻿.navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
+﻿/* Fundo da Barra - Gradiente Moderno */
+.bg-custom {
+    background: linear-gradient(90deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+    /* Se preferires cor sólida, apaga a linha de cima e descomenta a de baixo: */
+    /* background-color: #1a1a1a; */
 }
 
-.top-row {
-    height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
-}
-
+/* Estilo do Logo (MyCOLL) */
 .navbar-brand {
-    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #ffffff !important;
+    font-size: 1.5rem;
 }
 
-.bi {
-    display: inline-block;
-    position: relative;
-    width: 1.25rem;
-    height: 1.25rem;
-    margin-right: 0.75rem;
-    top: -1px;
-    background-size: cover;
+/* Estilo dos Links (Home, Produtos, etc) */
+.nav-link {
+    color: rgba(255, 255, 255, 0.8) !important; /* Branco ligeiramente transparente */
+    font-weight: 500;
+    margin-left: 10px;
+    transition: all 0.3s ease; /* Animação suave */
 }
 
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
-}
-
-    .nav-item ::deep a {
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
+    /* Quando passas o rato por cima do link */
+    .nav-link:hover, .nav-link.active {
+        color: #ffffff !important; /* Branco puro */
+        text-shadow: 0 0 10px rgba(255,255,255,0.5); /* Brilho */
+        transform: translateY(-2px); /* Sobe um bocadinho */
     }
 
-        .nav-item ::deep a:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-        }
+/* Botão de Sair */
+.btn-logout {
+    color: #ff6b6b !important; /* Vermelho suave */
+    border: 1px solid #ff6b6b;
+    border-radius: 20px;
+    padding: 5px 20px !important;
+}
+
+    .btn-logout:hover {
+        background-color: #ff6b6b;
+        color: white !important;
+    }
+
+/* Correção para menu em telemóveis (Fundo escuro quando abre) */
+@media (max-width: 991px) {
+    .navbar-collapse {
+        background-color: rgba(0, 0, 0, 0.9);
+        padding: 15px;
+        border-radius: 0 0 15px 15px;
+        position: relative;
+        z-index: 1000;
+    }
+}

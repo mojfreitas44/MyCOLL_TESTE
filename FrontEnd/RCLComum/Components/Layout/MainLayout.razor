@@ -1,16 +1,12 @@
 ﻿@inherits LayoutComponentBase
 
 <div class="page">
-    <div class="sidebar">
+    <header class="sticky-top">
         <NavMenu />
-    </div>
+    </header>
 
     <main>
-        <div class="top-row px-4">
-            <a href="#" target="_blank">Sobre o MyCOLL</a>
-        </div>
-
-        <article class="content px-4">
+        <article class="content px-4 py-3">
             @Body
         </article>
     </main>
