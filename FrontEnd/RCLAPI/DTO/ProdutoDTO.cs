@@ -24,7 +24,6 @@ namespace RCLAPI.DTO
 
         // -------------------------------------------------------
 
-        // Lógica de Disponibilidade (MANTIDA)
         public string DisponibilidadeTexto
         {
             get
@@ -48,10 +47,7 @@ namespace RCLAPI.DTO
         public string? CategoriaNome { get; set; }
         public string? FornecedorNome { get; set; }
         public string Condicao { get; set; } = string.Empty;
-
         public byte[]? Imagem { get; set; }
-
-        // Conversão de Imagem (MANTIDA)
         public string ImagemSrc
         {
             get
