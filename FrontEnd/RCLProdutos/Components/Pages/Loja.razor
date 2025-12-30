@@ -7,21 +7,16 @@
 <PageTitle>Loja Online</PageTitle>
 
 <div class="container mt-4">
-    <div class="d-flex align-items-center mb-4">
-        <h2 class="text-success fw-bold mb-0"><i class="bi bi-shop me-2"></i>Loja</h2>
-    </div>
+    <h2 class="text-success fw-bold mb-4"><i class="bi bi-shop me-2"></i>Loja</h2>
 
     @if (produtos == null)
     {
-        <div class="d-flex justify-content-center p-5">
-            <div class="spinner-border text-success" role="status"></div>
-        </div>
+        <div class="spinner-border text-success"></div>
     }
     else if (!produtos.Any())
     {
-        <div class="alert alert-warning rounded-3 shadow-sm">
-            <i class="bi bi-bag-x me-2"></i> Não há produtos disponíveis.
-        </div>
+
+        <div class="alert alert-warning">A loja está vazia.</div>
     }
     else
     {
@@ -37,9 +32,7 @@
                             }
                             else
                             {
-                                <div class="d-flex align-items-center justify-content-center h-100 text-muted">
-                                    <i class="bi bi-bag fs-1"></i>
-                                </div>
+                                <div class="d-flex align-items-center justify-content-center h-100 text-muted"><i class="bi bi-bag fs-1"></i></div>
                             }
                             <span class="position-absolute top-0 end-0 badge bg-success m-2 shadow-sm">Venda</span>
                         </div>
@@ -47,17 +40,13 @@
                         <div class="card-body">
                             <h5 class="card-title fw-bold text-truncate">@produto.Nome</h5>
 
-                            <h4 class="text-success fw-bold mb-1">@produto.Preco.ToString("C")</h4>
+                            <h4 class="text-success fw-bold mb-1">@produto.PrecoVenda.ToString("C")</h4>
 
-                            <p class="small fw-bold mb-2 @produto.DisponibilidadeCor">
-                                <i class="bi bi-box-seam me-1"></i>@produto.DisponibilidadeTexto
-                            </p>
+                            <p class="small fw-bold mb-2 @produto.DisponibilidadeCor">@produto.DisponibilidadeTexto</p>
                         </div>
 
                         <div class="card-footer bg-white border-top-0 pb-3 d-grid gap-2">
-                            <button class="btn btn-success rounded-pill"
-                                    @onclick="() => IrParaCarrinho()"
-                                    disabled="@(produto.Stock <= 0)">
+                            <button class="btn btn-success rounded-pill" @onclick="() => IrParaCarrinho()" disabled="@(produto.Stock <= 0)">
                                 @if (produto.Stock <= 0)
                                 {
                                     <span>Sem Stock</span>
@@ -68,9 +57,7 @@
                                     <span><i class="bi bi-cart-plus me-2"></i>Adicionar</span>
                                 }
                             </button>
-                            <a href="produtos/detalhes/@produto.Id" class="btn btn-outline-secondary rounded-pill">
-                                Detalhes
-                            </a>
+                            <a href="produtos/detalhes/@produto.Id" class="btn btn-outline-secondary rounded-pill">Detalhes</a>
                         </div>
                     </div>
                 </div>
@@ -87,20 +74,11 @@
         try
         {
             var todos = await ProdutosService.GetProdutos();
-            // 1. Estado é "Ativo"
-            // 2. ParaVenda é true (ou seja, é para vender)
-            produtos = todos
-                .Where(p => p.Estado == "Ativo" && p.ParaVenda == true)
-                .ToList();
+            // Filtro: Apenas o que é Para Venda
+            produtos = todos.Where(p => p.ParaVenda == true).ToList();
         }
-        catch
-        {
-            produtos = new List<ProdutoDTO>();
-        }
+        catch { produtos = new List<ProdutoDTO>(); }
     }
 
-    private void IrParaCarrinho()
-    {
-        Nav.NavigateTo("carrinho");
-    }
+    private void IrParaCarrinho() { Nav.NavigateTo("carrinho"); }
 }
