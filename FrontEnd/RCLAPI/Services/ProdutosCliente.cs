@@ -1,28 +1,29 @@
-﻿using System.Net.Http.Json;
-using RCLAPI.DTO;
+﻿using RCLAPI.DTO;
+using System.Net.Http.Json;
 
 namespace RCLAPI.Services
 {
-    public class ProdutosClient
+    public class ProdutosCliente
     {
         private readonly HttpClient _httpClient;
 
-        public ProdutosClient(HttpClient httpClient)
+        public ProdutosCliente(HttpClient httpClient)
         {
             _httpClient = httpClient;
         }
 
-        public async Task<List<ProdutoDTO>> GetProdutosAsync()
+        // --- ESTE É O MÉTODO QUE FALTAVA ---
+        public async Task<List<ProdutoDTO>> GetProdutos()
         {
             try
             {
-                // Atenção: O endpoint na API é "api/Produtos"
-                var lista = await _httpClient.GetFromJsonAsync<List<ProdutoDTO>>("api/Produtos");
-                return lista ?? new List<ProdutoDTO>();
+                // Tenta buscar a lista à API. Se der erro ou vier null, devolve lista vazia.
+                var resultado = await _httpClient.GetFromJsonAsync<List<ProdutoDTO>>("api/Produtos");
+                return resultado ?? new List<ProdutoDTO>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ERRO API: {ex.Message}");
+                Console.WriteLine($"Erro ao buscar produtos: {ex.Message}");
                 return new List<ProdutoDTO>();
             }
         }

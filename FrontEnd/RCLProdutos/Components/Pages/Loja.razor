@@ -1,0 +1,106 @@
+﻿@page "/loja"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject ProdutosCliente ProdutosService
+@inject NavigationManager Nav
+
+<PageTitle>Loja Online</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex align-items-center mb-4">
+        <h2 class="text-success fw-bold mb-0"><i class="bi bi-shop me-2"></i>Loja</h2>
+    </div>
+
+    @if (produtos == null)
+    {
+        <div class="d-flex justify-content-center p-5">
+            <div class="spinner-border text-success" role="status"></div>
+        </div>
+    }
+    else if (!produtos.Any())
+    {
+        <div class="alert alert-warning rounded-3 shadow-sm">
+            <i class="bi bi-bag-x me-2"></i> Não há produtos disponíveis.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var produto in produtos)
+            {
+                <div class="col-md-6 col-lg-4 col-xl-3">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                        <div class="position-relative bg-light" style="height: 250px;">
+                            @if (!string.IsNullOrEmpty(produto.ImagemSrc))
+                            {
+                                <img src="@produto.ImagemSrc" class="w-100 h-100 object-fit-cover" alt="@produto.Nome" />
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                                    <i class="bi bi-bag fs-1"></i>
+                                </div>
+                            }
+                            <span class="position-absolute top-0 end-0 badge bg-success m-2 shadow-sm">Venda</span>
+                        </div>
+
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-truncate">@produto.Nome</h5>
+
+                            <h4 class="text-success fw-bold mb-1">@produto.Preco.ToString("C")</h4>
+
+                            <p class="small fw-bold mb-2 @produto.DisponibilidadeCor">
+                                <i class="bi bi-box-seam me-1"></i>@produto.DisponibilidadeTexto
+                            </p>
+                        </div>
+
+                        <div class="card-footer bg-white border-top-0 pb-3 d-grid gap-2">
+                            <button class="btn btn-success rounded-pill"
+                                    @onclick="() => IrParaCarrinho()"
+                                    disabled="@(produto.Stock <= 0)">
+                                @if (produto.Stock <= 0)
+                                {
+                                    <span>Sem Stock</span>
+                                }
+                                else
+                                {
+
+                                    <span><i class="bi bi-cart-plus me-2"></i>Adicionar</span>
+                                }
+                            </button>
+                            <a href="produtos/detalhes/@produto.Id" class="btn btn-outline-secondary rounded-pill">
+                                Detalhes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProdutoDTO>? produtos;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var todos = await ProdutosService.GetProdutos();
+            // 1. Estado é "Ativo"
+            // 2. ParaVenda é true (ou seja, é para vender)
+            produtos = todos
+                .Where(p => p.Estado == "Ativo" && p.ParaVenda == true)
+                .ToList();
+        }
+        catch
+        {
+            produtos = new List<ProdutoDTO>();
+        }
+    }
+
+    private void IrParaCarrinho()
+    {
+        Nav.NavigateTo("carrinho");
+    }
+}

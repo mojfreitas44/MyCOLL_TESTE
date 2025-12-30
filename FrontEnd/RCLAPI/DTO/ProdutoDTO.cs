@@ -8,16 +8,60 @@ namespace RCLAPI.DTO
         public string Nome { get; set; } = string.Empty;
         public string Descricao { get; set; } = string.Empty;
 
-        // IMPORTANTE: Tem de ter o mesmo nome que vem da API
         [JsonPropertyName("precoVenda")]
-        public decimal PrecoVenda { get; set; }
+        public decimal Preco { get; set; }
 
-        public byte[]? Imagem { get; set; }
-        public string Condicao { get; set; } = string.Empty;
+        // --- ATUALIZAÇÃO: ADICIONADO PARAVENDA E MAPEAMENTOS ---
+
+        [JsonPropertyName("stock")]
+        public int Stock { get; set; }
+
+        [JsonPropertyName("paraVenda")]
+        public bool ParaVenda { get; set; } // <--- O CAMPO CRÍTICO QUE FALTAVA
+
+        [JsonPropertyName("estado")]
+        public string Estado { get; set; } = string.Empty;
+
+        // -------------------------------------------------------
+
+        // Lógica de Disponibilidade (MANTIDA)
+        public string DisponibilidadeTexto
+        {
+            get
+            {
+                if (Stock <= 0) return "Esgotado";
+                if (Stock < 5) return "Últimas Unidades!";
+                return "Em Stock";
+            }
+        }
+
+        public string DisponibilidadeCor
+        {
+            get
+            {
+                if (Stock <= 0) return "text-danger";
+                if (Stock < 5) return "text-warning";
+                return "text-success";
+            }
+        }
 
         public string? CategoriaNome { get; set; }
-        public int CategoriaId { get; set; }
         public string? FornecedorNome { get; set; }
-        public string? Disponibilidade { get; set; } = string.Empty;
+        public string Condicao { get; set; } = string.Empty;
+
+        public byte[]? Imagem { get; set; }
+
+        // Conversão de Imagem (MANTIDA)
+        public string ImagemSrc
+        {
+            get
+            {
+                if (Imagem == null || Imagem.Length == 0)
+                    return string.Empty;
+
+                string base64 = Convert.ToBase64String(Imagem);
+                return $"data:image/png;base64,{base64}";
+            }
+        }
     }
 }

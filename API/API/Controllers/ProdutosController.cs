@@ -31,6 +31,9 @@ namespace API.Controllers
                 PrecoVenda = p.PrecoVenda,
                 Imagem = p.Imagem,
                 Condicao = p.Condicao,
+                ParaVenda = p.ParaVenda,  // Vai buscar à BD se é Venda ou Coleção
+                Estado = p.Estado,        // Vai buscar se está Ativo
+                Stock = p.Stock,
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
                 // A correção do Fornecedor para evitar "vazio"

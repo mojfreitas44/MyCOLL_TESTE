@@ -52,25 +52,17 @@
     private async Task FazerLogin()
     {
         mensagemErro = ""; // Limpa erros anteriores
+
         var resposta = await Auth.Login(loginModel);
 
         if (resposta.Sucesso)
         {
-            string role = resposta.Role?.ToLower() ?? "";
-
-            if (role == "cliente" || role == "fornecedor")
-            {
-                Nav.NavigateTo("/"); // Entra na app
-            }
-            else
-            {
-                // Se for Admin, Funcionario ou outro, EXPULSA
-                await Auth.Logout();
-                mensagemErro = "Acesso negado. Esta aplicação é exclusiva para Clientes e Fornecedores.";
-            }
+            // Se chegou aqui, já sabemos que é Cliente ou Fornecedor
+            Nav.NavigateTo("/");
         }
         else
         {
+            // Se falhou (Admin, Pendente, Password Errada), mostra a mensagem
             mensagemErro = resposta.MensagemErro;
         }
     }

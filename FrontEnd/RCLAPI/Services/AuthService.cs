@@ -22,25 +22,20 @@ namespace RCLAPI.Services
         {
             try
             {
-                // Tenta ler o token da memória
                 var token = await _localStorage.GetItemAsync<string>("authToken");
 
                 if (string.IsNullOrEmpty(token))
                 {
-                    // Se não houver token, devolve "anónimo" (não logado)
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
-                // Se houver token, configura o pedido HTTP
                 _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                // Devolve o utilizador autenticado
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt")));
             }
             catch
             {
-                // <--- O PARAQUEDAS: Se der QUALQUER erro (ex: storage vazio), assume que não está logado
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
         }
@@ -57,14 +52,39 @@ namespace RCLAPI.Services
 
                     if (response != null && !string.IsNullOrEmpty(response.AccessToken))
                     {
+                        // --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
+                        // Validamos a ROLE antes de notificar a App que estamos logados.
+                        // Assim evitamos o "refresh" da página.
+                        var role = response.Role?.ToLower() ?? "";
+
+                        if (role != "cliente" && role != "fornecedor")
+                        {
+                            return new LoginResponse
+                            {
+                                Sucesso = false,
+                                MensagemErro = "Acesso negado. Apenas Clientes ou Fornecedores podem usar esta App."
+                            };
+                        }
+
+                        // Se passou, guardamos o token e notificamos
                         await _localStorage.SetItemAsync("authToken", response.AccessToken);
                         NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+
                         response.Sucesso = true;
                         return response;
                     }
                 }
 
-                return new LoginResponse { Sucesso = false, MensagemErro = "Login falhou. Credenciais erradas." };
+                // --- CORREÇÃO MENSAGEM DE ERRO ---
+                // Lê a mensagem exata da API (ex: "Conta Pendente", "Credenciais erradas")
+                var msgErro = await result.Content.ReadAsStringAsync();
+
+                // Limpa aspas extra se existirem
+                msgErro = msgErro.Trim('"');
+
+                if (string.IsNullOrEmpty(msgErro)) msgErro = "Login falhou.";
+
+                return new LoginResponse { Sucesso = false, MensagemErro = msgErro };
             }
             catch (Exception ex)
             {

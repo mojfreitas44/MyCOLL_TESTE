@@ -45,7 +45,7 @@ namespace ClienteMAUI
                 (AuthService)provider.GetRequiredService<AuthenticationStateProvider>());
 
             // 5. Registar o Serviço de Produtos (Para a página de Catálogo funcionar)
-            builder.Services.AddScoped<ProdutosClient>();
+            builder.Services.AddScoped<ProdutosCliente>();
 
             // --- FIM DAS CONFIGURAÇÕES ---
 
