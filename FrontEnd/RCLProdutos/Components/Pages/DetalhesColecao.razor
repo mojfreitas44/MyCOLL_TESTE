@@ -1,4 +1,4 @@
-﻿@page "/produtos/detalhes/{Id:int}"
+﻿@page "/colecao/detalhes/{Id:int}"
 @using RCLAPI.DTO
 @using RCLAPI.Services
 @inject ProdutosCliente ProdutosService
@@ -7,117 +7,59 @@
 <PageTitle>@tituloPagina</PageTitle>
 
 <div class="container mt-4">
-    @* Botão Voltar *@
-    <button class="btn btn-outline-secondary mb-4" @onclick="Voltar">
-        <i class="bi bi-arrow-left me-2"></i>Voltar
+    <button class="btn btn-outline-primary mb-4 rounded-pill" @onclick="VoltarColecao">
+        <i class="bi bi-arrow-left me-2"></i>Voltar à Coleção
     </button>
 
     @if (isLoading)
     {
-        <div class="d-flex justify-content-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">A carregar...</span>
-            </div>
+        <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     }
     else if (produto == null)
     {
-        <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle me-2"></i>Produto não encontrado.
-        </div>
+        <div class="alert alert-info">Produto não encontrado na coleção.</div>
     }
     else
     {
         <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
             <div class="row g-0">
                 @* Coluna da Imagem *@
-                <div class="col-md-6 bg-light d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                <div class="col-md-6 bg-light d-flex align-items-center justify-content-center position-relative" style="min-height: 400px;">
                     @if (!string.IsNullOrEmpty(produto.ImagemSrc))
                     {
-                        <img src="@produto.ImagemSrc" class="img-fluid rounded-start object-fit-contain" style="max-height: 500px;" alt="@produto.Nome">
+                        <img src="@produto.ImagemSrc" class="img-fluid object-fit-contain p-3" style="max-height: 500px;" />
                     }
                     else
                     {
+                        @* --- ALTERAÇÃO AQUI: Estilo igual ao da Loja --- *@
                         <div class="text-muted text-center">
-                            <i class="bi @(produto.ParaVenda ? "bi-bag" : "bi-collection")" style="font-size: 5rem;"></i>
-                            <p class="mt-2">Sem Imagem</p>
+                            <i class="bi bi-image" style="font-size: 5rem;"></i>
+                            <p class="mt-2">Imagem indisponível</p>
                         </div>
                     }
+                    <span class="position-absolute top-0 end-0 badge bg-primary m-3">Coleção</span>
                 </div>
 
                 @* Coluna dos Detalhes *@
                 <div class="col-md-6">
-                    <div class="card-body p-4 p-lg-5 d-flex flex-column h-100">
-
-                        @* Header: Categoria e Badges *@
-                        <div class="mb-2">
-                            <span class="badge bg-secondary me-2">@produto.CategoriaNome</span>
-                            @if (produto.ParaVenda)
-                            {
-                                <span class="badge bg-success">Loja</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-primary">Coleção Pessoal</span>
-                            }
-                        </div>
-
+                    <div class="card-body p-4">
+                        <span class="badge bg-light text-dark border mb-2">@produto.CategoriaNome</span>
                         <h2 class="fw-bold mb-3">@produto.Nome</h2>
 
-                        @* Se for LOJA: Mostra Preço e Stock *@
-                        @if (produto.ParaVenda)
-                        {
-                            <h3 class="text-success fw-bold mb-3">@produto.PrecoVenda.ToString("C")</h3>
-                            <p class="mb-3 fw-bold @produto.DisponibilidadeCor">
-                                <i class="bi bi-box-seam me-2"></i>@produto.DisponibilidadeTexto
-                            </p>
-                        }
-
-                        @* Descrição *@
-                        <div class="mb-4">
-                            <h5 class="fw-bold text-muted mb-2">Descrição</h5>
-                            <p class="card-text text-secondary" style="white-space: pre-line;">
-                                @(string.IsNullOrEmpty(produto.Descricao) ? "Sem descrição disponível." : produto.Descricao)
-                            </p>
+                        <div class="alert alert-light border-start border-primary border-4">
+                            <i class="bi bi-info-circle-fill text-primary me-2"></i>
+                            Este item pertence à coleção pessoal e não está à venda.
                         </div>
 
-                        @* Detalhes Técnicos *@
-                        <div class="row mb-4 g-3">
-                            <div class="col-6">
-                                <small class="text-muted d-block fw-bold">Condição</small>
-                                <span>@produto.Condicao</span>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted d-block fw-bold">Fornecedor / Origem</small>
-                                <span>@produto.FornecedorNome</span>
-                            </div>
-                        </div>
+                        <h5 class="fw-bold mt-4">Descrição</h5>
+                        <p class="text-muted">@(produto.Descricao ?? "Sem descrição.")</p>
 
-                        @* Footer: Botões de Ação *@
-                        <div class="mt-auto">
-                            @if (produto.ParaVenda)
-                            {
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-success btn-lg rounded-pill" disabled="@(produto.Stock <= 0)" @onclick="AdicionarAoCarrinho">
-                                        @if (produto.Stock <= 0)
-                                        {
-                                            <span>Esgotado</span>
-                                        }
-                                        else
-                                        {
-                                            <span><i class="bi bi-cart-plus me-2"></i>Adicionar ao Carrinho</span>
-                                        }
-                                    </button>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="alert alert-light border text-center text-muted">
-                                    <i class="bi bi-info-circle me-2"></i>Este item pertence à coleção pessoal e não está disponível para venda.
-                                </div>
-                            }
+                        <div class="mt-4">
+                            <small class="d-block text-muted"><strong>Condição:</strong> @produto.Condicao</small>
+                            <small class="d-block text-muted"><strong>Origem:</strong> @produto.FornecedorNome</small>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -126,12 +68,10 @@
 </div>
 
 @code {
-    [Parameter]
-    public int Id { get; set; }
-
+    [Parameter] public int Id { get; set; }
     private ProdutoDTO? produto;
     private bool isLoading = true;
-    private string tituloPagina = "Detalhes do Produto";
+    private string tituloPagina = "Detalhes da Coleção";
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,33 +81,17 @@
             if (produto != null)
             {
                 tituloPagina = produto.Nome;
+
+                // Redirecionamento de segurança: Se for Venda, manda para a Loja
+                if (produto.ParaVenda)
+                {
+                    Nav.NavigateTo($"/loja/detalhes/{Id}");
+                }
             }
         }
-        catch
-        {
-            // Erro silencioso ou log
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch { }
+        finally { isLoading = false; }
     }
 
-    private void Voltar()
-    {
-        // Se for para venda, volta para a Loja, senão volta para a Coleção
-        if (produto != null && produto.ParaVenda)
-        {
-            Nav.NavigateTo("loja");
-        }
-        else
-        {
-            Nav.NavigateTo("colecao");
-        }
-    }
-
-    private void AdicionarAoCarrinho()
-    {
-        Nav.NavigateTo("carrinho");
-    }
+    private void VoltarColecao() => Nav.NavigateTo("colecao");
 }

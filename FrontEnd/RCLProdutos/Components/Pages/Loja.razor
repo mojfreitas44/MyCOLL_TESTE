@@ -15,7 +15,6 @@
     }
     else if (!produtos.Any())
     {
-
         <div class="alert alert-warning">A loja está vazia.</div>
     }
     else
@@ -39,9 +38,7 @@
 
                         <div class="card-body">
                             <h5 class="card-title fw-bold text-truncate">@produto.Nome</h5>
-
                             <h4 class="text-success fw-bold mb-1">@produto.PrecoVenda.ToString("C")</h4>
-
                             <p class="small fw-bold mb-2 @produto.DisponibilidadeCor">@produto.DisponibilidadeTexto</p>
                         </div>
 
@@ -53,11 +50,12 @@
                                 }
                                 else
                                 {
-
                                     <span><i class="bi bi-cart-plus me-2"></i>Adicionar</span>
                                 }
                             </button>
-                            <a href="loja/detalhes/@produto.Id" class="btn btn-outline-secondary rounded-pill">Detalhes</a>
+                            @* --- CORREÇÃO IMPORTANTE ABAIXO --- *@
+                            @* Garante que o link aponta explicitamente para /loja/detalhes/ *@
+                            <a href="/loja/detalhes/@produto.Id" class="btn btn-outline-secondary rounded-pill">Detalhes</a>
                         </div>
                     </div>
                 </div>
@@ -74,7 +72,6 @@
         try
         {
             var todos = await ProdutosService.GetProdutos();
-            // Filtro: Apenas o que é Para Venda
             produtos = todos.Where(p => p.ParaVenda == true).ToList();
         }
         catch { produtos = new List<ProdutoDTO>(); }

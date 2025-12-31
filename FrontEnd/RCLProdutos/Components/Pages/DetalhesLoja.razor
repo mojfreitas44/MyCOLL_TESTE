@@ -7,7 +7,6 @@
 <PageTitle>@tituloPagina</PageTitle>
 
 <div class="container mt-4">
-    @* Botão Voltar para a Loja *@
     <button class="btn btn-outline-success mb-4 rounded-pill" @onclick="VoltarLoja">
         <i class="bi bi-arrow-left me-2"></i>Voltar à Loja
     </button>
@@ -15,16 +14,12 @@
     @if (isLoading)
     {
         <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
-            <div class="spinner-border text-success" role="status">
-                <span class="visually-hidden">A carregar...</span>
-            </div>
+            <div class="spinner-border text-success" role="status"></div>
         </div>
     }
     else if (produto == null)
     {
-        <div class="alert alert-warning text-center">
-            <i class="bi bi-exclamation-triangle me-2"></i>Produto não encontrado.
-        </div>
+        <div class="alert alert-warning text-center">Produto não encontrado.</div>
     }
     else
     {
@@ -43,19 +38,18 @@
                             <p class="mt-2">Imagem indisponível</p>
                         </div>
                     }
+                    @* Badge apenas de Venda (já que estamos na Loja) *@
                     <span class="position-absolute top-0 end-0 badge bg-success m-3 shadow">Venda</span>
                 </div>
 
                 @* Coluna das Informações *@
                 <div class="col-md-6 bg-white">
                     <div class="card-body p-4 p-lg-5 d-flex flex-column h-100">
-
                         <div class="mb-2">
                             <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3">
                                 @produto.CategoriaNome
                             </span>
                         </div>
-
                         <h2 class="fw-bold mb-2">@produto.Nome</h2>
 
                         <div class="d-flex align-items-center mb-4">
@@ -65,45 +59,35 @@
                         <div class="mb-4 p-3 bg-light rounded-3 border-start border-4 border-success">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="bi bi-box-seam me-2 text-secondary"></i>
+                                @* Agora a cor vai funcionar porque o Stock já vem da API *@
                                 <span class="fw-bold @produto.DisponibilidadeCor">@produto.DisponibilidadeTexto</span>
                             </div>
-                            <small class="text-muted d-block">
-                                <strong>Fornecedor:</strong> @produto.FornecedorNome
-                            </small>
-                            <small class="text-muted d-block">
-                                <strong>Condição:</strong> @produto.Condicao
-                            </small>
+                            <small class="text-muted d-block"><strong>Fornecedor:</strong> @produto.FornecedorNome</small>
+                            <small class="text-muted d-block"><strong>Condição:</strong> @produto.Condicao</small>
                         </div>
 
                         <h5 class="fw-bold text-dark mb-2">Sobre o Produto</h5>
-                        <p class="card-text text-secondary mb-4" style="line-height: 1.6;">
-                            @(string.IsNullOrEmpty(produto.Descricao) ? "Este produto não tem descrição." : produto.Descricao)
-                        </p>
+                        <p class="card-text text-secondary mb-4">@(string.IsNullOrEmpty(produto.Descricao) ? "Sem descrição." : produto.Descricao)</p>
 
-                        @* Botões de Ação (Fundo da coluna) *@
                         <div class="mt-auto">
                             <div class="d-grid gap-2">
-                                <button class="btn btn-success btn-lg rounded-pill shadow-sm"
-                                        disabled="@(produto.Stock <= 0)"
-                                        @onclick="AdicionarAoCarrinho">
+                                <button class="btn btn-success btn-lg rounded-pill shadow-sm" disabled="@(produto.Stock <= 0)" @onclick="AdicionarAoCarrinho">
                                     @if (produto.Stock <= 0)
                                     {
-                                        <span><i class="bi bi-x-circle me-2"></i>Esgotado</span>
+                                        <span>Esgotado</span>
                                     }
                                     else
                                     {
+
                                         <span><i class="bi bi-cart-plus-fill me-2"></i>Adicionar ao Carrinho</span>
                                     }
                                 </button>
                             </div>
                             @if (produto.Stock > 0 && produto.Stock <= 5)
                             {
-                                <div class="text-center mt-2">
-                                    <small class="text-warning fw-bold"><i class="bi bi-fire me-1"></i>Corre! Só restam @produto.Stock unidades.</small>
-                                </div>
+                                <div class="text-center mt-2"><small class="text-warning fw-bold">Corre! Só restam @produto.Stock unidades.</small></div>
                             }
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -112,9 +96,7 @@
 </div>
 
 @code {
-    [Parameter]
-    public int Id { get; set; }
-
+    [Parameter] public int Id { get; set; }
     private ProdutoDTO? produto;
     private bool isLoading = true;
     private string tituloPagina = "Detalhes do Produto";
@@ -123,37 +105,16 @@
     {
         try
         {
-            // Nota: Certifica-te que adicionaste o método GetProduto(id) no Service, como falámos antes
             produto = await ProdutosService.GetProduto(Id);
-
             if (produto != null)
             {
                 tituloPagina = produto.Nome;
-                // Segurança extra: Se tentarem abrir um produto de coleção aqui, manda-os para a página certa
-                if (!produto.ParaVenda)
-                {
-                    Nav.NavigateTo($"colecao/detalhes/{Id}");
-                }
             }
         }
-        catch (Exception)
-        {
-            // Podes adicionar um Toast de erro aqui se quiseres
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch { }
+        finally { isLoading = false; }
     }
 
-    private void VoltarLoja()
-    {
-        Nav.NavigateTo("loja");
-    }
-
-    private void AdicionarAoCarrinho()
-    {
-        // Aqui deves implementar a lógica de adicionar ao carrinho ou ir para o carrinho
-        Nav.NavigateTo("carrinho");
-    }
+    private void VoltarLoja() { Nav.NavigateTo("loja"); }
+    private void AdicionarAoCarrinho() { Nav.NavigateTo("carrinho"); }
 }

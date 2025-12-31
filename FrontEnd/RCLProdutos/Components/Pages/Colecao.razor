@@ -14,7 +14,6 @@
     }
     else if (!produtos.Any())
     {
-
         <div class="alert alert-info">Ainda não existem itens na coleção pessoal.</div>
     }
     else
@@ -43,7 +42,8 @@
                         </div>
 
                         <div class="card-footer bg-white border-top-0 pb-3">
-                            <a href="produtos/detalhes/@produto.Id" class="btn btn-outline-primary w-100 rounded-pill">Ver Detalhes</a>
+                            @* CORREÇÃO AQUI: Link absoluto com barra no início e rota específica de colecao *@
+                            <a href="/colecao/detalhes/@produto.Id" class="btn btn-outline-primary w-100 rounded-pill">Ver Detalhes</a>
                         </div>
                     </div>
                 </div>
@@ -60,7 +60,6 @@
         try
         {
             var todos = await ProdutosService.GetProdutos();
-            // Filtro: Apenas o que NÃO é Para Venda
             produtos = todos.Where(p => p.ParaVenda == false).ToList();
         }
         catch { produtos = new List<ProdutoDTO>(); }
