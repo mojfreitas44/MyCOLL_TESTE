@@ -69,6 +69,9 @@ namespace API.Controllers
                 Condicao = produto.Condicao,
                 CategoriaId = produto.CategoriaId,
                 CategoriaNome = produto.Categoria?.Nome,
+                ParaVenda = produto.ParaVenda,  
+                Stock = produto.Stock,          
+                Estado = produto.Estado,
                 FornecedorNome = !string.IsNullOrEmpty(produto.Fornecedor?.Nome)
                     ? produto.Fornecedor.Nome : (produto.Fornecedor?.UserName ?? "Produto Oficial"),
                 Disponibilidade = produto.Stock <= 0 ? "Esgotado" :

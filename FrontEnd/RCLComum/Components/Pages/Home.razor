@@ -1,10 +1,15 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject ProdutosCliente ProdutosService
+@inject NavigationManager Nav
 
 <PageTitle>MyCOLL - Home</PageTitle>
 
 <div class="container mt-4 mb-5">
 
+    @* --- SECÇÃO 1: BANNER ORIGINAL (INTOCADO) --- *@
     <div class="row align-items-center p-4 p-lg-5 mb-5 rounded-4 shadow-sm border bg-white main-banner overflow-hidden position-relative">
         <div class="col-lg-6 mb-4 mb-lg-0 position-relative" style="z-index: 2;">
             <h1 class="display-4 fw-bold text-dark mb-3">
@@ -27,7 +32,7 @@
                     </NotAuthorized>
                     <Authorized>
                         <a href="colecao" class="btn btn-outline-secondary btn-lg px-4 rounded-pill hover-up">
-                            Minha Galeria
+                            A Nossa Coleção
                         </a>
                     </Authorized>
                 </AuthorizeView>
@@ -41,6 +46,85 @@
         </div>
     </div>
 
+    @* --- SECÇÃO 2: DESTAQUE (INSERIDO AQUI) --- *@
+    <div class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold text-dark mb-0"><i class="bi bi-star-fill text-warning me-2"></i>Destaque</h2>
+            <button class="btn btn-outline-secondary rounded-pill btn-sm" @onclick="CarregarDestaque" disabled="@isLoading">
+                <i class="bi bi-shuffle me-2"></i>Ver Outro
+            </button>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5 bg-white rounded-4 shadow-sm border">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-2">A procurar tesouros...</p>
+            </div>
+        }
+        else if (produtoDestaque != null)
+        {
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div class="row g-0">
+                    <div class="col-md-4 bg-light d-flex align-items-center justify-content-center position-relative" style="min-height: 250px;">
+                        @if (!string.IsNullOrEmpty(produtoDestaque.ImagemSrc))
+                        {
+                            <img src="@produtoDestaque.ImagemSrc" class="img-fluid object-fit-contain p-3" style="max-height: 300px;" />
+                        }
+                        else
+                        {
+                            <div class="text-muted text-center">
+                                <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                <p class="small">Sem Imagem</p>
+                            </div>
+                        }
+
+                        @* --- AQUI ESTÁ A LÓGICA DAS ETIQUETAS --- *@
+                        @if (produtoDestaque.ParaVenda)
+                        {
+                            // Produto da Loja -> Etiqueta Verde "À Venda"
+                            <span class="position-absolute top-0 start-0 badge bg-success m-3 shadow">Artigo à Venda</span>
+                        }
+                        else
+                        {
+                            // Produto da Coleção -> Etiqueta Azul "Coleção"
+                            <span class="position-absolute top-0 start-0 badge bg-primary m-3 shadow">Coleção</span>
+                        }
+                </div>
+
+                <div class="col-md-8 bg-white">
+                    <div class="card-body p-4 d-flex flex-column h-100">
+                        <div>
+                            <h3 class="card-title fw-bold mb-2">@produtoDestaque.Nome</h3>
+                            <span class="badge bg-light text-dark border mb-3">@produtoDestaque.CategoriaNome</span>
+
+                            <p class="card-text text-muted mb-3">
+                                @(produtoDestaque.Descricao?.Length > 120
+                                                                ? produtoDestaque.Descricao.Substring(0, 120) + "..."
+                                                                : produtoDestaque.Descricao)
+                            </p>
+                        </div>
+
+                            <div class="mt-auto d-flex align-items-center justify-content-between">
+                            @if (produtoDestaque.ParaVenda)
+                                {
+                                    <h4 class="text-success fw-bold mb-0">@produtoDestaque.PrecoVenda.ToString("C")</h4>
+                                    <a href="/loja/detalhes/@produtoDestaque.Id" class="btn btn-success rounded-pill px-4">Ver Detalhes</a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic small">No Price Data</span>
+                                    <a href="/colecao/detalhes/@produtoDestaque.Id" class="btn btn-primary rounded-pill px-4">Ver Detalhes</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @* --- SECÇÃO 3: ACESSO RÁPIDO ORIGINAL (INTOCADO) --- *@
     <div class="text-center mb-5">
         <h2 class="fw-bold text-dark">Acesso Rápido</h2>
         <div class="divider mx-auto bg-primary"></div>
@@ -107,3 +191,31 @@
 
     </div>
 </div>
+
+@code {
+    private ProdutoDTO? produtoDestaque;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarDestaque();
+    }
+
+    private async Task CarregarDestaque()
+    {
+        isLoading = true;
+        try
+        {
+            // Tenta obter via API
+            produtoDestaque = await ProdutosService.GetProdutoDestaque();
+        }
+        catch (Exception)
+        {
+            // Ignora erro na home
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

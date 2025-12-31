@@ -45,5 +45,17 @@ namespace RCLAPI.Services
                 return null;
             }
         }
+        public async Task<ProdutoDTO?> GetProdutoDestaque()
+        {
+            try
+            {
+                var resultado = await _httpClient.GetFromJsonAsync<ProdutoDTO>("api/Produtos/destaque", _options);
+                return resultado;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

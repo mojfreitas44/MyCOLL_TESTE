@@ -39,7 +39,7 @@ namespace API.Repositories
         public async Task<Produto?> GetProdutoDestaqueAsync()
         {
             // 1. Contar quantos produtos elegíveis existem
-            var count = await _context.Produtos.CountAsync(p => p.Estado == "Ativo" && p.ParaVenda == true);
+            var count = await _context.Produtos.CountAsync(p => p.Estado == "Ativo"); //&& p.ParaVenda == true
 
             if (count == 0) return null;
 
@@ -52,7 +52,7 @@ namespace API.Repositories
                 .AsNoTracking()
                 .Include(p => p.Categoria)
                 .Include(p => p.Fornecedor)
-                .Where(p => p.Estado == "Ativo" && p.ParaVenda == true)
+                .Where(p => p.Estado == "Ativo") //&& p.ParaVenda == true
                 .Skip(skip)
                 .FirstOrDefaultAsync();
         }
