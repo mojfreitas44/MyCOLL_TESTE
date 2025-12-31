@@ -1,0 +1,173 @@
+﻿@page "/produtos/detalhes/{Id:int}"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject ProdutosCliente ProdutosService
+@inject NavigationManager Nav
+
+<PageTitle>@tituloPagina</PageTitle>
+
+<div class="container mt-4">
+    @* Botão Voltar *@
+    <button class="btn btn-outline-secondary mb-4" @onclick="Voltar">
+        <i class="bi bi-arrow-left me-2"></i>Voltar
+    </button>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">A carregar...</span>
+            </div>
+        </div>
+    }
+    else if (produto == null)
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>Produto não encontrado.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="row g-0">
+                @* Coluna da Imagem *@
+                <div class="col-md-6 bg-light d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                    @if (!string.IsNullOrEmpty(produto.ImagemSrc))
+                    {
+                        <img src="@produto.ImagemSrc" class="img-fluid rounded-start object-fit-contain" style="max-height: 500px;" alt="@produto.Nome">
+                    }
+                    else
+                    {
+                        <div class="text-muted text-center">
+                            <i class="bi @(produto.ParaVenda ? "bi-bag" : "bi-collection")" style="font-size: 5rem;"></i>
+                            <p class="mt-2">Sem Imagem</p>
+                        </div>
+                    }
+                </div>
+
+                @* Coluna dos Detalhes *@
+                <div class="col-md-6">
+                    <div class="card-body p-4 p-lg-5 d-flex flex-column h-100">
+
+                        @* Header: Categoria e Badges *@
+                        <div class="mb-2">
+                            <span class="badge bg-secondary me-2">@produto.CategoriaNome</span>
+                            @if (produto.ParaVenda)
+                            {
+                                <span class="badge bg-success">Loja</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary">Coleção Pessoal</span>
+                            }
+                        </div>
+
+                        <h2 class="fw-bold mb-3">@produto.Nome</h2>
+
+                        @* Se for LOJA: Mostra Preço e Stock *@
+                        @if (produto.ParaVenda)
+                        {
+                            <h3 class="text-success fw-bold mb-3">@produto.PrecoVenda.ToString("C")</h3>
+                            <p class="mb-3 fw-bold @produto.DisponibilidadeCor">
+                                <i class="bi bi-box-seam me-2"></i>@produto.DisponibilidadeTexto
+                            </p>
+                        }
+
+                        @* Descrição *@
+                        <div class="mb-4">
+                            <h5 class="fw-bold text-muted mb-2">Descrição</h5>
+                            <p class="card-text text-secondary" style="white-space: pre-line;">
+                                @(string.IsNullOrEmpty(produto.Descricao) ? "Sem descrição disponível." : produto.Descricao)
+                            </p>
+                        </div>
+
+                        @* Detalhes Técnicos *@
+                        <div class="row mb-4 g-3">
+                            <div class="col-6">
+                                <small class="text-muted d-block fw-bold">Condição</small>
+                                <span>@produto.Condicao</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block fw-bold">Fornecedor / Origem</small>
+                                <span>@produto.FornecedorNome</span>
+                            </div>
+                        </div>
+
+                        @* Footer: Botões de Ação *@
+                        <div class="mt-auto">
+                            @if (produto.ParaVenda)
+                            {
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success btn-lg rounded-pill" disabled="@(produto.Stock <= 0)" @onclick="AdicionarAoCarrinho">
+                                        @if (produto.Stock <= 0)
+                                        {
+                                            <span>Esgotado</span>
+                                        }
+                                        else
+                                        {
+                                            <span><i class="bi bi-cart-plus me-2"></i>Adicionar ao Carrinho</span>
+                                        }
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-light border text-center text-muted">
+                                    <i class="bi bi-info-circle me-2"></i>Este item pertence à coleção pessoal e não está disponível para venda.
+                                </div>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private ProdutoDTO? produto;
+    private bool isLoading = true;
+    private string tituloPagina = "Detalhes do Produto";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            produto = await ProdutosService.GetProduto(Id);
+            if (produto != null)
+            {
+                tituloPagina = produto.Nome;
+            }
+        }
+        catch
+        {
+            // Erro silencioso ou log
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Voltar()
+    {
+        // Se for para venda, volta para a Loja, senão volta para a Coleção
+        if (produto != null && produto.ParaVenda)
+        {
+            Nav.NavigateTo("loja");
+        }
+        else
+        {
+            Nav.NavigateTo("colecao");
+        }
+    }
+
+    private void AdicionarAoCarrinho()
+    {
+        Nav.NavigateTo("carrinho");
+    }
+}

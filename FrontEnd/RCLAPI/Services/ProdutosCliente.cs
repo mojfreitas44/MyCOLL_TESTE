@@ -29,5 +29,21 @@ namespace RCLAPI.Services
                 return new List<ProdutoDTO>();
             }
         }
+        // No ficheiro: FrontEnd/RCLAPI/Services/ProdutosCliente.cs
+
+        public async Task<ProdutoDTO?> GetProduto(int id)
+        {
+            try
+            {
+                // Chama a API: GET api/Produtos/{id}
+                var resultado = await _httpClient.GetFromJsonAsync<ProdutoDTO>($"api/Produtos/{id}", _options);
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao buscar produto {id}: {ex.Message}");
+                return null;
+            }
+        }
     }
 }

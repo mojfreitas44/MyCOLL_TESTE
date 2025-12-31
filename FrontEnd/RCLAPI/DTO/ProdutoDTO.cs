@@ -32,6 +32,6 @@ namespace RCLAPI.DTO
         }
 
         public string DisponibilidadeTexto => !string.IsNullOrEmpty(Disponibilidade) ? Disponibilidade : (Stock <= 0 ? "Esgotado" : "Em Stock");
-        public string DisponibilidadeCor => Stock <= 0 ? "text-danger" : Stock < 5 ? "text-warning" : "text-success";
+        public string DisponibilidadeCor => Stock <= 0 ? "text-danger" : Stock <= 5 ? "text-warning" : "text-success";
     }
 }
