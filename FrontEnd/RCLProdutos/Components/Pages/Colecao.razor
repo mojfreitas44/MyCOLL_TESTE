@@ -2,24 +2,64 @@
 @using RCLAPI.DTO
 @using RCLAPI.Services
 @inject ProdutosCliente ProdutosService
+@inject CategoriasCliente CategoriasService
+@inject NavigationManager Nav
 
 <PageTitle>A Nossa Coleção</PageTitle>
 
 <div class="container mt-4">
-    <h2 class="text-primary fw-bold mb-4"><i class="bi bi-collection me-2"></i>A Nossa Coleção</h2>
 
-    @if (produtos == null)
+    <div class="row align-items-center mb-4 g-3">
+        <div class="col-md-4">
+            <h2 class="text-primary fw-bold m-0"><i class="bi bi-collection me-2"></i>A Nossa Coleção</h2>
+        </div>
+
+        <div class="col-md-8">
+            <div class="d-flex gap-2 justify-content-md-end">
+                <select class="form-select w-auto rounded-pill border-primary text-primary fw-bold"
+                        @onchange="FiltrarPorCategoria">
+                    <option value="">Todas as Categorias</option>
+                    @if (categorias != null)
+                    {
+                        @foreach (var cat in categorias)
+                        {
+                            <option value="@cat.Id">@cat.Nome</option>
+                        }
+                    }
+                </select>
+
+                <div class="input-group w-auto">
+                    <input type="text" class="form-control rounded-start-pill border-end-0"
+                           placeholder="Pesquisar..."
+                           @bind="pesquisaTexto"
+                           @bind:event="oninput"
+                           @onkeyup="AtualizarPesquisa" />
+                    <span class="input-group-text bg-white rounded-end-pill border-start-0 text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (produtosPaginados == null)
     {
-        <div class="spinner-border text-primary"></div>
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
     }
-    else if (!produtos.Any())
+    else if (!produtosPaginados.Any())
     {
-        <div class="alert alert-info">Ainda não existem itens na coleção pessoal.</div>
+        <div class="text-center py-5">
+            <i class="bi bi-folder-x text-muted display-1"></i>
+            <p class="lead text-muted mt-3">Nenhum item encontrado na coleção.</p>
+            <button class="btn btn-outline-primary rounded-pill mt-2" @onclick="LimparFiltros">Ver Tudo</button>
+        </div>
     }
     else
     {
-        <div class="row g-4">
-            @foreach (var produto in produtos)
+        <div class="row g-4 mb-5">
+            @foreach (var produto in produtosPaginados)
             {
                 <div class="col-md-6 col-lg-4 col-xl-3">
                     <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover">
@@ -36,32 +76,124 @@
                         </div>
 
                         <div class="card-body">
+                            <span class="badge bg-light text-dark border mb-2">@produto.CategoriaNome</span>
                             <h5 class="card-title fw-bold text-truncate">@produto.Nome</h5>
                             <p class="card-text text-muted small text-truncate">@produto.Descricao</p>
-                            <span class="badge bg-light text-dark border">@produto.CategoriaNome</span>
                         </div>
 
-                        <div class="card-footer bg-white border-top-0 pb-3">
-                            @* CORREÇÃO AQUI: Link absoluto com barra no início e rota específica de colecao *@
+                        <div class="card-footer bg-white border-top-0 pb-3 pt-0">
                             <a href="/colecao/detalhes/@produto.Id" class="btn btn-outline-primary w-100 rounded-pill">Ver Detalhes</a>
                         </div>
                     </div>
                 </div>
             }
         </div>
+
+        @if (totalPaginas > 1)
+        {
+            <nav aria-label="Navegação">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(paginaAtual == 1 ? "disabled" : "")">
+                        <button class="page-link rounded-start-pill text-primary" @onclick="() => MudarPagina(paginaAtual - 1)">Anterior</button>
+                    </li>
+
+                    @for (int i = 1; i <= totalPaginas; i++)
+                    {
+                        var p = i;
+                        <li class="page-item @(paginaAtual == p ? "active" : "")">
+                            <button class="page-link @(paginaAtual == p ? "bg-primary border-primary" : "text-primary")"
+                                    @onclick="() => MudarPagina(p)">
+                                @p
+                            </button>
+                        </li>
+                    }
+
+                    <li class="page-item @(paginaAtual == totalPaginas ? "disabled" : "")">
+                        <button class="page-link rounded-end-pill text-primary" @onclick="() => MudarPagina(paginaAtual + 1)">Seguinte</button>
+                    </li>
+                </ul>
+            </nav>
+        }
     }
 </div>
 
 @code {
-    private List<ProdutoDTO>? produtos;
+    private List<ProdutoDTO>? todosProdutosFiltrados;
+    private List<ProdutoDTO>? produtosPaginados;
+    private List<CategoriaDTO>? categorias;
+
+    private string pesquisaTexto = "";
+    private int? categoriaIdSelecionada = null;
+
+    private int paginaAtual = 1;
+    private int itensPorPagina = 8; // Default 8
+    private int totalPaginas = 1;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        await CarregarDados();
+    }
+
+    private async Task CarregarDados()
+    {
+        try { categorias = await CategoriasService.GetCategorias(); } catch { }
+        await AplicarFiltros();
+    }
+
+    private async Task AtualizarPesquisa(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || string.IsNullOrWhiteSpace(pesquisaTexto) || pesquisaTexto.Length > 2)
         {
-            var todos = await ProdutosService.GetProdutos();
-            produtos = todos.Where(p => p.ParaVenda == false).ToList();
+            await AplicarFiltros();
         }
-        catch { produtos = new List<ProdutoDTO>(); }
+    }
+
+    private async Task FiltrarPorCategoria(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int id))
+            categoriaIdSelecionada = id;
+        else
+            categoriaIdSelecionada = null;
+
+        await AplicarFiltros();
+    }
+
+    private async Task LimparFiltros()
+    {
+        pesquisaTexto = "";
+        categoriaIdSelecionada = null;
+        await AplicarFiltros();
+    }
+
+    private async Task AplicarFiltros()
+    {
+        paginaAtual = 1;
+
+        var resultado = await ProdutosService.GetProdutos(pesquisaTexto, categoriaIdSelecionada);
+        // Filtro específico da Coleção (ParaVenda = false)
+        todosProdutosFiltrados = resultado.Where(p => p.ParaVenda == false).ToList();
+
+        CalcularPaginacao();
+    }
+
+    private void CalcularPaginacao()
+    {
+        if (todosProdutosFiltrados != null)
+        {
+            totalPaginas = (int)Math.Ceiling((double)todosProdutosFiltrados.Count / itensPorPagina);
+            produtosPaginados = todosProdutosFiltrados
+                .Skip((paginaAtual - 1) * itensPorPagina)
+                .Take(itensPorPagina)
+                .ToList();
+        }
+    }
+
+    private void MudarPagina(int novaPagina)
+    {
+        if (novaPagina >= 1 && novaPagina <= totalPaginas)
+        {
+            paginaAtual = novaPagina;
+            CalcularPaginacao();
+        }
     }
 }

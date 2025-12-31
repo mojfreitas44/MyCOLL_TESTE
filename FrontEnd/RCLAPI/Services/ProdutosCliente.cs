@@ -16,11 +16,22 @@ namespace RCLAPI.Services
             _options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         }
 
-        public async Task<List<ProdutoDTO>> GetProdutos()
+        // No ficheiro FrontEnd/RCLAPI/Services/ProdutosCliente.cs
+
+        public async Task<List<ProdutoDTO>> GetProdutos(string? pesquisa = null, int? categoriaId = null)
         {
             try
             {
-                var resultado = await _httpClient.GetFromJsonAsync<List<ProdutoDTO>>("api/Produtos", _options);
+                // Constrói a URL com Query String
+                var query = "api/Produtos?";
+
+                if (!string.IsNullOrEmpty(pesquisa))
+                    query += $"pesquisa={Uri.EscapeDataString(pesquisa)}&";
+
+                if (categoriaId.HasValue)
+                    query += $"categoriaId={categoriaId}&";
+
+                var resultado = await _httpClient.GetFromJsonAsync<List<ProdutoDTO>>(query, _options);
                 return resultado ?? new List<ProdutoDTO>();
             }
             catch (Exception ex)
@@ -29,6 +40,8 @@ namespace RCLAPI.Services
                 return new List<ProdutoDTO>();
             }
         }
+
+        // ... manter o resto (GetProduto, GetProdutoDestaque) igual ...
         // No ficheiro: FrontEnd/RCLAPI/Services/ProdutosCliente.cs
 
         public async Task<ProdutoDTO?> GetProduto(int id)

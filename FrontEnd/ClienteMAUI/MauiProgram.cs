@@ -47,6 +47,9 @@ namespace ClienteMAUI
             // 5. Registar o Serviço de Produtos (Para a página de Catálogo funcionar)
             builder.Services.AddScoped<ProdutosCliente>();
 
+            // 6. Registar o Serviço de Categorias (Para a página de Catálogo funcionar)
+            builder.Services.AddScoped<CategoriasCliente>();
+
             // --- FIM DAS CONFIGURAÇÕES ---
 
             return builder.Build();
