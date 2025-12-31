@@ -4,43 +4,83 @@
 @inject AuthService Auth
 @inject NavigationManager Nav
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white text-center">
-                    <h3>🔐 Iniciar Sessão</h3>
-                </div>
+<PageTitle>MyCOLL - Login</PageTitle>
+
+<div class="container py-5">
+    <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+        <div class="col-md-6 col-lg-5 col-xl-4">
+
+            <div class="text-center mb-4">
+                <img src="_content/RCLImages/images/Tesouro.png" alt="Logo" width="80" class="mb-3" />
+                <h2 class="fw-bold text-dark">Bem-Vindo</h2>
+                <p class="text-muted">Insere os teus dados para entrar.</p>
+            </div>
+
+            <div class="card shadow-lg border-0 rounded-4 p-4">
                 <div class="card-body">
                     <EditForm Model="@loginModel" OnValidSubmit="FazerLogin">
                         <DataAnnotationsValidator />
 
+                        @* Email Input *@
                         <div class="mb-3">
-                            <label>Email</label>
-                            <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="exemplo@email.com" />
-                            <ValidationMessage For="@(() => loginModel.Email)" />
+                            <label class="form-label fw-bold small text-secondary ms-2">Email</label>
+                            <div class="input-group">
+                                @* ÍCONE: Cinzento mais escuro (bg-secondary-subtle) para contraste *@
+                                <span class="input-group-text bg-secondary-subtle border border-end-0 rounded-start-pill ps-3 pe-2">
+                                    <i class="bi bi-envelope text-primary"></i>
+                                </span>
+                                @* INPUT: Fundo branco (bg-white) e borda para parecer uma caixa normal *@
+                                <InputText @bind-Value="loginModel.Email"
+                                           class="form-control bg-white border border-start-0 rounded-end-pill py-2 ps-1"
+                                           placeholder="nome@exemplo.com" />
+                            </div>
+                            <ValidationMessage For="@(() => loginModel.Email)" class="small text-danger ms-2" />
                         </div>
 
-                        <div class="mb-3">
-                            <label>Password</label>
-                            <InputText @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="******" />
-                            <ValidationMessage For="@(() => loginModel.Password)" />
+                        @* Password Input *@
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-secondary ms-2">Palavra-passe</label>
+                            <div class="input-group">
+                                @* ÍCONE: Cinzento mais escuro *@
+                                <span class="input-group-text bg-secondary-subtle border border-end-0 rounded-start-pill ps-3 pe-2">
+                                    <i class="bi bi-lock text-primary"></i>
+                                </span>
+                                @* INPUT: Fundo branco *@
+                                <InputText @bind-Value="loginModel.Password"
+                                           type="password"
+                                           class="form-control bg-white border border-start-0 rounded-end-pill py-2 ps-1"
+                                           placeholder="••••••••" />
+                            </div>
+                            <ValidationMessage For="@(() => loginModel.Password)" class="small text-danger ms-2" />
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                        @* Botão de Login *@
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill shadow-sm fw-bold">
+                                Entrar <i class="bi bi-box-arrow-in-right ms-2"></i>
+                            </button>
+                        </div>
+
+                        @* Mensagem de Erro *@
+                        @if (!string.IsNullOrEmpty(mensagemErro))
+                        {
+                            <div class="alert alert-danger border-0 rounded-3 d-flex align-items-center" role="alert">
+                                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                                <div class="small">@mensagemErro</div>
+                            </div>
+                        }
                     </EditForm>
-
-                    @if (!string.IsNullOrEmpty(mensagemErro))
-                    {
-                        <div class="alert alert-danger mt-3 text-center">
-                            @mensagemErro
-                        </div>
-                    }
-                </div>
-                <div class="card-footer text-center">
-                    <small>Ainda não tens conta? <a href="registar">Cria aqui</a></small>
                 </div>
             </div>
+
+            @* Link para Registar *@
+            <div class="text-center mt-4">
+                <p class="text-muted small mb-0">Ainda não tens conta?</p>
+                <a href="registar" class="text-decoration-none fw-bold text-primary">
+                    Criar conta gratuita <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+
         </div>
     </div>
 </div>
@@ -51,18 +91,15 @@
 
     private async Task FazerLogin()
     {
-        mensagemErro = ""; // Limpa erros anteriores
+        mensagemErro = "";
 
         var resposta = await Auth.Login(loginModel);
-
         if (resposta.Sucesso)
         {
-            // Se chegou aqui, já sabemos que é Cliente ou Fornecedor
             Nav.NavigateTo("/");
         }
         else
         {
-            // Se falhou (Admin, Pendente, Password Errada), mostra a mensagem
             mensagemErro = resposta.MensagemErro;
         }
     }

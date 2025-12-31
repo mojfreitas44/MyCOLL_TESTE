@@ -52,9 +52,6 @@ namespace RCLAPI.Services
 
                     if (response != null && !string.IsNullOrEmpty(response.AccessToken))
                     {
-                        // --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
-                        // Validamos a ROLE antes de notificar a App que estamos logados.
-                        // Assim evitamos o "refresh" da página.
                         var role = response.Role?.ToLower() ?? "";
 
                         if (role != "cliente" && role != "fornecedor")

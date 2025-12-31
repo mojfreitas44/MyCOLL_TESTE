@@ -54,12 +54,12 @@ namespace API.Controllers
 
             // Validação de Permissões e Estado
             var roleOk = role.Equals("Cliente", StringComparison.OrdinalIgnoreCase)
-                      || role.Equals("Fornecedor", StringComparison.OrdinalIgnoreCase)
-                      || role.Equals("Administrador", StringComparison.OrdinalIgnoreCase)
-                      || role.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+                      || role.Equals("Fornecedor", StringComparison.OrdinalIgnoreCase);
+                     // || role.Equals("Administrador", StringComparison.OrdinalIgnoreCase)
+                     // || role.Equals("Admin", StringComparison.OrdinalIgnoreCase);
 
             if (!roleOk)
-                return StatusCode(StatusCodes.Status403Forbidden, "A sua conta não tem permissão para entrar.");
+                return StatusCode(StatusCodes.Status403Forbidden, "A sua conta não tem permissão para entrar na aplicação Frontend.");
 
             if (!role.Contains("Admin") && !estado.Equals("Ativo", StringComparison.OrdinalIgnoreCase))
                 return StatusCode(StatusCodes.Status403Forbidden, "A sua conta ainda não está ativa.");
