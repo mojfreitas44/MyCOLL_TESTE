@@ -4,96 +4,155 @@
 @inject AuthService Auth
 @inject NavigationManager Nav
 
-<div class="container mt-4 mb-5">
-    <div class="card shadow">
-        <div class="card-header bg-success text-white text-center">
-            <h3>📝 Registo de Cliente</h3>
-        </div>
-        <div class="card-body">
-            <EditForm Model="@registerModel" OnValidSubmit="FazerRegisto">
-                <DataAnnotationsValidator />
+<PageTitle>MyCOLL - Criar Conta</PageTitle>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Nome</label>
-                        <InputText @bind-Value="registerModel.Nome" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.Nome)" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Apelido</label>
-                        <InputText @bind-Value="registerModel.Apelido" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.Apelido)" />
-                    </div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+
+            <div class="text-center mb-4">
+                <img src="_content/RCLImages/images/Tesouro.png" alt="Logo" width="70" class="mb-3" />
+                <h2 class="fw-bold text-dark">Junta-te à Comunidade</h2>
+                <p class="text-muted">Cria a tua conta para começar a comprar e gerir a tua coleção.</p>
+            </div>
+
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-body p-4 p-md-5">
+
+                    <EditForm Model="@registerModel" OnValidSubmit="FazerRegisto">
+                        <DataAnnotationsValidator />
+
+                        @* --- SECÇÃO 1: DADOS DE ACESSO --- *@
+                        <h5 class="fw-bold text-primary mb-3"><i class="bi bi-shield-lock me-2"></i>Dados de Acesso</h5>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary ms-2">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-secondary-subtle border border-end-0 rounded-start-pill ps-3 pe-2"><i class="bi bi-envelope text-primary"></i></span>
+                                <InputText @bind-Value="registerModel.Email" class="form-control bg-white border border-start-0 rounded-end-pill ps-1" placeholder="exemplo@email.com" />
+                            </div>
+                            <ValidationMessage For="@(() => registerModel.Email)" class="small text-danger ms-2" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-secondary-subtle border border-end-0 rounded-start-pill ps-3 pe-2"><i class="bi bi-lock text-primary"></i></span>
+                                    <InputText @bind-Value="registerModel.Password" type="password" class="form-control bg-white border border-start-0 rounded-end-pill ps-1" placeholder="******" />
+                                </div>
+                                <ValidationMessage For="@(() => registerModel.Password)" class="small text-danger ms-2" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Confirmar</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-secondary-subtle border border-end-0 rounded-start-pill ps-3 pe-2"><i class="bi bi-check-circle text-primary"></i></span>
+                                    <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control bg-white border border-start-0 rounded-end-pill ps-1" placeholder="******" />
+                                </div>
+                                <ValidationMessage For="@(() => registerModel.ConfirmPassword)" class="small text-danger ms-2" />
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted opacity-25">
+
+                        @* --- SECÇÃO 2: DADOS PESSOAIS --- *@
+                        <h5 class="fw-bold text-primary mb-3"><i class="bi bi-person-vcard me-2"></i>Dados Pessoais</h5>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Nome</label>
+                                <InputText @bind-Value="registerModel.Nome" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Primeiro nome" />
+                                <ValidationMessage For="@(() => registerModel.Nome)" class="small text-danger ms-2" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Apelido</label>
+                                <InputText @bind-Value="registerModel.Apelido" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Último nome" />
+                                <ValidationMessage For="@(() => registerModel.Apelido)" class="small text-danger ms-2" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">NIF</label>
+                                <InputNumber @bind-Value="registerModel.NIF" class="form-control rounded-pill bg-light border-0 px-3" />
+                                <ValidationMessage For="@(() => registerModel.NIF)" class="small text-danger ms-2" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Telemóvel</label>
+                                <InputText @bind-Value="registerModel.Telemovel" class="form-control rounded-pill bg-light border-0 px-3" placeholder="910000000" />
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted opacity-25">
+
+                        @* --- SECÇÃO 3: MORADA --- *@
+                        <h5 class="fw-bold text-primary mb-3"><i class="bi bi-geo-alt me-2"></i>Morada</h5>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary ms-2">Rua e Número</label>
+                            <InputText @bind-Value="registerModel.Rua" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Rua Principal, nº 123" />
+                            <ValidationMessage For="@(() => registerModel.Rua)" class="small text-danger ms-2" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Código Postal</label>
+                                <InputText @bind-Value="registerModel.CodigoPostal" class="form-control rounded-pill bg-light border-0 px-3" placeholder="0000-000" />
+                                <ValidationMessage For="@(() => registerModel.CodigoPostal)" class="small text-danger ms-2" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Localidade</label>
+                                <InputText @bind-Value="registerModel.Localidade" class="form-control rounded-pill bg-light border-0 px-3" />
+                                <ValidationMessage For="@(() => registerModel.Localidade)" class="small text-danger ms-2" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label small fw-bold text-secondary ms-2">Cidade</label>
+                                <InputText @bind-Value="registerModel.Cidade" class="form-control rounded-pill bg-light border-0 px-3" />
+                                <ValidationMessage For="@(() => registerModel.Cidade)" class="small text-danger ms-2" />
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary ms-2">País</label>
+                            <InputText @bind-Value="registerModel.Pais" class="form-control rounded-pill bg-light border-0 px-3" placeholder="Portugal" />
+                            <ValidationMessage For="@(() => registerModel.Pais)" class="small text-danger ms-2" />
+                        </div>
+
+                        @* --- BOTÃO DE SUBMISSÃO --- *@
+                        <div class="d-grid mt-5">
+                            <button type="submit" class="btn btn-success btn-lg rounded-pill shadow fw-bold">
+                                Criar Conta <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+
+                    </EditForm>
+
+                    @* Mensagens de Feedback *@
+                    @if (!string.IsNullOrEmpty(mensagem))
+                    {
+                        var alertClass = mensagem.Contains("sucesso") ? "alert-success" : "alert-danger";
+                        <div class="alert @alertClass mt-4 border-0 rounded-3 text-center shadow-sm">
+                            @if (mensagem.Contains("sucesso"))
+                            {
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                            }
+                            else
+                            {
+
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            }
+                            @mensagem
+                        </div>
+                    }
+
                 </div>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>NIF</label>
-                        <InputNumber @bind-Value="registerModel.NIF" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.NIF)" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Telemóvel</label>
-                        <InputText @bind-Value="registerModel.Telemovel" class="form-control" />
-                    </div>
-                </div>
+            <div class="text-center mt-4">
+                <span class="text-muted">Já tens conta?</span>
+                <a href="login" class="fw-bold text-primary text-decoration-none ms-1">Fazer Login</a>
+            </div>
 
-                <hr />
-                <h5>Morada</h5>
-
-                <div class="mb-3">
-                    <label>Rua</label>
-                    <InputText @bind-Value="registerModel.Rua" class="form-control" />
-                    <ValidationMessage For="@(() => registerModel.Rua)" />
-                </div>
-
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label>Código Postal</label>
-                        <InputText @bind-Value="registerModel.CodigoPostal" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.CodigoPostal)" />
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label>Cidade</label>
-                        <InputText @bind-Value="registerModel.Cidade" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.Cidade)" />
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label>País</label>
-                        <InputText @bind-Value="registerModel.Pais" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.Pais)" />
-                    </div>
-                </div>
-
-                <hr />
-                <h5>Acesso</h5>
-
-                <div class="mb-3">
-                    <label>Email</label>
-                    <InputText @bind-Value="registerModel.Email" class="form-control" />
-                    <ValidationMessage For="@(() => registerModel.Email)" />
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Password</label>
-                        <InputText @bind-Value="registerModel.Password" type="password" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.Password)" />
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Confirmar Password</label>
-                        <InputText @bind-Value="registerModel.ConfirmPassword" type="password" class="form-control" />
-                        <ValidationMessage For="@(() => registerModel.ConfirmPassword)" />
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-success w-100 mt-3">Criar Conta</button>
-            </EditForm>
-
-            @if (!string.IsNullOrEmpty(mensagem))
-            {
-                <div class="alert alert-info mt-3">@mensagem</div>
-            }
         </div>
     </div>
 </div>
@@ -104,6 +163,9 @@
 
     private async Task FazerRegisto()
     {
+        // Limpar mensagem anterior
+        mensagem = "";
+
         bool sucesso = await Auth.Registar(registerModel);
 
         if (sucesso)
@@ -114,7 +176,7 @@
         }
         else
         {
-            mensagem = "Erro ao registar. Verifique os dados.";
+            mensagem = "Erro ao registar. Verifique se o email já existe ou tente novamente.";
         }
     }
 }
