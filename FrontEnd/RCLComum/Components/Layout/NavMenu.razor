@@ -2,6 +2,8 @@
 @using RCLAPI.Services
 @inject AuthService Auth
 @inject NavigationManager Nav
+@inject CarrinhoService CarrinhoService
+@implements IDisposable
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-custom shadow py-3">
     <div class="container">
@@ -32,31 +34,34 @@
                     </NavLink>
                 </li>
 
-                <AuthorizeView>
-                    <Authorized>
-                        <li class="nav-item">
-                            <NavLink class="nav-link position-relative" href="carrinho">
-                                <i class="bi bi-cart-fill fs-5"></i>
-                            </NavLink>
-                        </li>
-                    </Authorized>
-                    <NotAuthorized>
-                        <li class="nav-item">
-                            <NavLink class="nav-link" href="login">
-                                <i class="bi bi-cart fs-5"></i>
-                            </NavLink>
-                        </li>
-                    </NotAuthorized>
-                </AuthorizeView>
+                @* --- CARRINHO --- *@
+                <li class="nav-item">
+                    <NavLink class="nav-link position-relative d-flex align-items-center" href="carrinho">
+                        <img src="_content/RCLImages/images/cart.png"
+                             alt="Carrinho"
+                             width="24"
+                             style="filter: invert(1) brightness(2);" />
+
+                        @if (contagemCarrinho > 0)
+                        {
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; margin-top: 5px; margin-left: -10px;">
+                                @contagemCarrinho
+                            </span>
+                        }
+                    </NavLink>
+                </li>
 
                 <AuthorizeView>
                     <Authorized>
-                        <li class="nav-item d-none d-lg-block mx-2 text-white-50">|</li>
-                        <li class="nav-item">
-                            <span class="nav-link text-warning fw-bold">Olá, @context.User.Identity?.Name</span>
+                        @* --- SAUDAÇÃO SIMPLES (Sem Dropdown) --- *@
+                        <li class="nav-item ms-lg-3 d-flex align-items-center text-white">
+                            <i class="bi bi-person-circle me-2"></i>
+                            <span class="fw-bold">Olá, @context.User.Identity?.Name</span>
                         </li>
-                        <li class="nav-item ms-lg-2">
-                            <button class="btn btn-outline-light btn-sm rounded-pill px-3" @onclick="Logout">
+
+                        @* --- BOTÃO SAIR --- *@
+                        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
+                            <button class="btn btn-outline-light rounded-pill btn-sm px-3 shadow-sm" @onclick="Logout">
                                 <i class="bi bi-box-arrow-right me-1"></i> Sair
                             </button>
                         </li>
@@ -87,27 +92,41 @@
     }
 
         .nav-link:hover {
-            color: #ffc107 !important; /* Amarelo ao passar o rato */
+            color: #ffc107 !important;
             transform: translateY(-2px);
         }
-
-    .btn-logout:hover {
-        background-color: rgba(255,255,255,0.2);
-    }
 </style>
 
 @code {
     private bool collapseNavMenu = true;
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private int contagemCarrinho = 0;
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        contagemCarrinho = await CarrinhoService.GetContagemTotal();
+        CarrinhoService.OnChange += AtualizarContagem;
+    }
+
+    private async void AtualizarContagem()
+    {
+        contagemCarrinho = await CarrinhoService.GetContagemTotal();
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task Logout()
     {
         await Auth.Logout();
-        Nav.NavigateTo("/login");
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        CarrinhoService.OnChange -= AtualizarContagem;
     }
 }

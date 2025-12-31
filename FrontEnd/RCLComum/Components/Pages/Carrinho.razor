@@ -1,0 +1,196 @@
+﻿@page "/carrinho"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthStateProvider
+@inject CarrinhoService CarrinhoSvc
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Meu Carrinho</PageTitle>
+
+<div class="container mt-4 mb-5">
+    <h2 class="fw-bold mb-4 text-dark"><i class="bi bi-cart3 me-2"></i>Carrinho de Compras</h2>
+
+    @if (itens == null || !itens.Any())
+    {
+        @* --- Estado Vazio --- *@
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm border">
+            <i class="bi bi-cart-x display-1 text-muted"></i>
+            <h3 class="mt-3 text-muted fw-bold">O teu carrinho está vazio.</h3>
+            <p class="text-muted mb-4">Parece que ainda não adicionaste nenhum tesouro à tua coleção.</p>
+            <a href="loja" class="btn btn-primary btn-lg rounded-pill shadow-sm px-5">
+                <i class="bi bi-arrow-left me-2"></i>Ir para a Loja
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @* --- Coluna da Esquerda: Lista de Itens --- *@
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+                    <div class="card-body p-0">
+                        @foreach (var item in itens)
+                        {
+                            <div class="d-flex align-items-center p-3 border-bottom">
+                                @* Imagem *@
+                                <div class="flex-shrink-0 bg-light rounded-3 d-flex align-items-center justify-content-center border" style="width: 80px; height: 80px;">
+                                    @if (!string.IsNullOrEmpty(item.Produto.ImagemSrc))
+                                    {
+                                        <img src="@item.Produto.ImagemSrc" class="img-fluid rounded-3 object-fit-contain p-1" style="max-height: 100%;" />
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-box-seam text-muted fs-4"></i>
+                                    }
+                                </div>
+
+                                @* Info do Produto *@
+                                <div class="flex-grow-1 ms-3">
+                                    <h5 class="fw-bold mb-1 text-dark">@item.Produto.Nome</h5>
+                                    <div class="text-muted small mb-1">@item.Produto.CategoriaNome</div>
+                                    <div class="text-success fw-bold">@item.Produto.PrecoVenda.ToString("C")</div>
+                                </div>
+
+                                @* Controlo de Quantidade *@
+                                <div class="d-flex align-items-center mx-3 bg-light rounded-pill px-2 py-1 border">
+                                    <button class="btn btn-sm btn-link text-dark text-decoration-none p-0"
+                                            @onclick="() => Decrementar(item)" disabled="@(item.Quantidade <= 1)">
+                                        <i class="bi bi-dash fw-bold"></i>
+                                    </button>
+                                    <span class="fw-bold mx-3" style="min-width: 20px; text-align: center;">@item.Quantidade</span>
+                                    <button class="btn btn-sm btn-link text-dark text-decoration-none p-0"
+                                            @onclick="() => Incrementar(item)" disabled="@(item.Quantidade >= item.Produto.Stock)">
+                                        <i class="bi bi-plus fw-bold"></i>
+                                    </button>
+                                </div>
+
+                                @* Subtotal e Remover *@
+                                <div class="text-end ms-2" style="min-width: 100px;">
+                                    <div class="fw-bold fs-5 mb-1">@item.PrecoTotal.ToString("C")</div>
+                                    <button class="btn btn-link text-danger text-decoration-none p-0 small" @onclick="() => Remover(item)">
+                                        <i class="bi bi-trash me-1"></i>Remover
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="loja" class="text-decoration-none fw-bold text-secondary">
+                        <i class="bi bi-arrow-left me-2"></i>Continuar a Comprar
+                    </a>
+                    <button class="btn btn-outline-danger rounded-pill px-4 btn-sm" @onclick="LimparTudo">
+                        <i class="bi bi-trash me-2"></i>Esvaziar
+                    </button>
+                </div>
+            </div>
+
+            @* --- Coluna da Direita: Resumo --- *@
+            <div class="col-lg-4 mt-4 mt-lg-0">
+                <div class="card shadow border-0 rounded-4 bg-white sticky-top" style="top: 20px; z-index: 1;">
+                    <div class="card-body p-4">
+                        <h4 class="fw-bold mb-4">Resumo</h4>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal (@itens.Sum(i => i.Quantidade) itens)</span>
+                            <span class="fw-bold">@precoTotal.ToString("C")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-4">
+                            <span class="text-muted">Envio</span>
+                            <span class="text-success fw-bold">Grátis</span>
+                        </div>
+
+                        <hr class="text-muted opacity-25">
+
+                        <div class="d-flex justify-content-between mb-4 align-items-center">
+                            <span class="fw-bold fs-5">Total</span>
+                            <span class="fw-bold fs-3 text-success">@precoTotal.ToString("C")</span>
+                        </div>
+
+                        <div class="d-grid">
+                            <button class="btn btn-success btn-lg rounded-pill shadow py-3 fw-bold" @onclick="FinalizarCompra">
+                                Finalizar Encomenda <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ItemCarrinho> itens = new();
+    private decimal precoTotal = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarCarrinho();
+        // Correção: Usar CarrinhoSvc em vez de Carrinho
+        CarrinhoSvc.OnChange += StateHasChangedWrapper;
+    }
+
+    private async void StateHasChangedWrapper()
+    {
+        await CarregarCarrinho();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CarregarCarrinho()
+    {
+        // Correção: Usar CarrinhoSvc
+        itens = await CarrinhoSvc.GetItens();
+        precoTotal = await CarrinhoSvc.GetPrecoTotal();
+    }
+
+    private async Task Incrementar(ItemCarrinho item)
+    {
+        await CarrinhoSvc.IncrementarQuantidade(item.Produto.Id);
+        await CarregarCarrinho();
+    }
+
+    private async Task Decrementar(ItemCarrinho item)
+    {
+        await CarrinhoSvc.DecrementarQuantidade(item.Produto.Id);
+        await CarregarCarrinho();
+    }
+
+    private async Task Remover(ItemCarrinho item)
+    {
+        await CarrinhoSvc.RemoverDoCarrinho(item.Produto.Id);
+        await CarregarCarrinho();
+    }
+
+    private async Task LimparTudo()
+    {
+        await CarrinhoSvc.LimparCarrinho();
+        await CarregarCarrinho();
+    }
+
+    private async Task FinalizarCompra()
+    {
+        // 1. Verificar se o utilizador está autenticado
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            // ESTÁ LOGADO -> Pode avançar para o Checkout
+            Nav.NavigateTo("checkout");
+        }
+        else
+        {
+            // NÃO ESTÁ LOGADO -> Manda para o Login
+            // Nota: O carrinho mantém-se no LocalStorage, por isso não se perde nada.
+            Nav.NavigateTo("login");
+        }
+    }
+
+    public void Dispose()
+    {
+        CarrinhoSvc.OnChange -= StateHasChangedWrapper;
+    }
+}

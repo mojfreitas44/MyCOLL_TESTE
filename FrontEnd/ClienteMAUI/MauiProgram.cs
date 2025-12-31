@@ -2,7 +2,7 @@
 using RCLAPI;
 using RCLAPI.Services;
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components.Authorization; // <--- NOVO: Precisas disto
+using Microsoft.AspNetCore.Components.Authorization; 
 
 namespace ClienteMAUI
 {
@@ -49,6 +49,9 @@ namespace ClienteMAUI
 
             // 6. Registar o Serviço de Categorias (Para a página de Catálogo funcionar)
             builder.Services.AddScoped<CategoriasCliente>();
+
+            // 7. Registar o Serviço do Carrinho de Compras
+            builder.Services.AddScoped<CarrinhoService>();
 
             // --- FIM DAS CONFIGURAÇÕES ---
 
