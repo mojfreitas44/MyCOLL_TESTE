@@ -19,8 +19,8 @@ namespace API.Repositories
                 .AsNoTracking()
                 .Include(p => p.Categoria)
                 .Include(p => p.Fornecedor)
-                .Where(p => p.ParaVenda == true)
-                .Where(p => p.Estado == "Ativo");
+                // REMOVIDO: .Where(p => p.ParaVenda == true) <--- Isto impedia a coleção de funcionar
+                .Where(p => p.Estado == "Ativo"); // Mantém isto, é a regra de negócio correta
 
             if (!string.IsNullOrEmpty(pesquisa))
             {
