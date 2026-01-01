@@ -13,6 +13,9 @@ namespace API.DTO
         [Required]
         public int ModoEntregaId { get; set; }  // Ex: 2 (CTT)
 
+        public List<ItemCarrinhoDTO> Itens { get; set; } = new();
+
+
         // Campos de Cartão (Simulação)
         public string? NumeroCartao { get; set; }
         public string? Validade { get; set; }

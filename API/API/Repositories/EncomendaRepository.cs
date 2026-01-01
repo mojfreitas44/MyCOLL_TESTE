@@ -16,133 +16,132 @@ namespace API.Repositories
 
         public async Task<Encomenda> CriarEncomenda(string userId, CheckoutDto dto)
         {
-            // --- 1. BLOQUEAR MÉTODOS ESTRANHOS ---
+            // 1. VALIDAR PAGAMENTO (SÓ VISA/MASTERCARD)
             var metodosAceites = new[] { "Visa", "Mastercard" };
-
             if (!metodosAceites.Contains(dto.MetodoPagamento))
             {
-                throw new Exception($"Método de pagamento inválido. Apenas aceitamos: {string.Join(", ", metodosAceites)}.");
+                throw new Exception($"Método inválido. Aceitamos apenas: {string.Join(", ", metodosAceites)}.");
             }
 
-            // --- 2. VALIDAR MODO DE ENTREGA ---
+            // 2. VALIDAR CARTÃO
+            if (string.IsNullOrEmpty(dto.NumeroCartao) || dto.NumeroCartao.Length < 15)
+                throw new Exception("Cartão inválido.");
+
+            // 3. VALIDAR MODO DE ENTREGA
             var modoEntrega = await _context.ModosEntrega.FindAsync(dto.ModoEntregaId);
-            if (modoEntrega == null)
+            if (modoEntrega == null) throw new Exception("Modo de entrega inválido.");
+
+            // 4. VALIDAR SE O CARRINHO TEM ITENS (Vem do Frontend)
+            if (dto.Itens == null || !dto.Itens.Any())
             {
-                throw new Exception("Modo de entrega inválido.");
+                throw new Exception("O carrinho está vazio.");
             }
 
-            // --- 3. VALIDAR DADOS DO CARTÃO ---
-            if (string.IsNullOrEmpty(dto.NumeroCartao) || dto.NumeroCartao.Length < 16)
-            {
-                throw new Exception("Pagamento Recusado: Cartão inválido (Simulação: use 16 dígitos).");
-            }
-            if (string.IsNullOrEmpty(dto.CVV) || dto.CVV.Length < 3)
-            {
-                throw new Exception("Pagamento Recusado: CVV inválido.");
-            }
-
-            // --- 4. BUSCAR O CARRINHO ---
-            var itensCarrinho = await _context.Set<CarrinhoCompras>()
-                .Include(c => c.Produto)
-                .Where(c => c.ClienteId == userId)
-                .ToListAsync();
-
-            if (!itensCarrinho.Any()) throw new Exception("O carrinho está vazio.");
-
-            // --- 5. CRIAR A ENCOMENDA (CABEÇALHO) ---
-            var novaEncomenda = new Encomenda
+            // 5. CRIAR ENCOMENDA
+            var encomenda = new Encomenda
             {
                 ClienteId = userId,
-                Data = DateTime.UtcNow,
+                Data = DateTime.Now,
                 Estado = "Pendente",
                 MoradaEnvio = dto.MoradaEnvio,
                 MetodoPagamento = dto.MetodoPagamento,
-                MetodoEntrega = modoEntrega.Nome,
-                ValorTotal = modoEntrega.Preco
+                MetodoEntrega = modoEntrega.Nome, // Guardamos o nome porque a tua tabela não tem o ID
+                ValorTotal = 0,
+                Itens = new List<EncomendaItem>()
             };
 
-            // --- 6. PROCESSAR ITENS E STOCK ---
-            foreach (var item in itensCarrinho)
+            _context.Encomendas.Add(encomenda); // Prepara para gerar ID
+
+            decimal totalItens = 0;
+
+            // 6. PROCESSAR PRODUTOS
+            foreach (var itemDto in dto.Itens)
             {
-                if (item.Produto == null) continue;
+                // Buscar produto à BD para garantir preço e stock reais
+                var produto = await _context.Produtos.FindAsync(itemDto.ProdutoId);
 
-                if (item.Produto.Stock < item.Quantidade)
+                if (produto == null)
+                    throw new Exception($"Produto {itemDto.ProdutoId} não existe.");
+
+                if (produto.Stock < itemDto.Quantidade)
+                    throw new Exception($"Stock insuficiente para '{produto.Nome}'.");
+
+                // Criar linha da encomenda
+                var linha = new EncomendaItem
                 {
-                    throw new Exception($"Stock insuficiente para o produto '{item.Produto.Nome}'. Restam apenas {item.Produto.Stock}.");
-                }
-
-                item.Produto.Stock -= item.Quantidade;
-
-                var encomendaItem = new EncomendaItem
-                {
-                    ProdutoId = item.ProdutoId,
-                    Quantidade = item.Quantidade,
-                    PrecoUnitario = item.Produto.PrecoVenda
+                    Encomenda = encomenda,
+                    ProdutoId = produto.Id,
+                    Quantidade = itemDto.Quantidade,
+                    PrecoUnitario = produto.PrecoVenda // CORRIGIDO: Usar PrecoVenda
                 };
 
-                novaEncomenda.Itens.Add(encomendaItem);
-                novaEncomenda.ValorTotal += (encomendaItem.PrecoUnitario * encomendaItem.Quantidade);
+                // Abater ao Stock
+                produto.Stock -= itemDto.Quantidade;
+
+                // Somar
+                totalItens += (linha.PrecoUnitario * linha.Quantidade);
+
+                encomenda.Itens.Add(linha);
             }
 
-            // --- 7. GRAVAR TUDO E LIMPAR CARRINHO ---
-            _context.Set<Encomenda>().Add(novaEncomenda);
-            _context.Set<CarrinhoCompras>().RemoveRange(itensCarrinho);
+            // 7. CALCULAR TOTAL (Produtos + Portes)
+            encomenda.ValorTotal = totalItens + modoEntrega.Preco;
 
+            // 8. GRAVAR
             await _context.SaveChangesAsync();
 
-            return novaEncomenda;
+            return encomenda;
         }
 
-        // --- MÉTODOS DE CLIENTE ---
+        // --- OUTROS MÉTODOS (MANTÊM-SE IGUAIS, SÓ VERIFICAR O INCLUDE) ---
+
         public async Task<IEnumerable<Encomenda>> GetEncomendasDoCliente(string userId)
         {
-            return await _context.Set<Encomenda>()
+            return await _context.Encomendas
                 .Include(e => e.Itens)
-                .ThenInclude(i => i.Produto) // Importante incluir o Produto para ver o nome
+                .ThenInclude(i => i.Produto)
                 .Where(e => e.ClienteId == userId)
+                .OrderByDescending(e => e.Data)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Encomenda>> GetAllEncomendas()
+        {
+            return await _context.Encomendas
+                .Include(e => e.Cliente)
+                .Include(e => e.Itens)
+                .ThenInclude(i => i.Produto)
                 .OrderByDescending(e => e.Data)
                 .ToListAsync();
         }
 
         public async Task<Encomenda?> GetDetalhesEncomenda(string userId, int encomendaId)
         {
-            return await _context.Set<Encomenda>()
+            return await _context.Encomendas
                 .Include(e => e.Itens)
                 .ThenInclude(i => i.Produto)
                 .FirstOrDefaultAsync(e => e.Id == encomendaId && e.ClienteId == userId);
         }
-        public async Task<IEnumerable<Encomenda>> GetAllEncomendas()
-        {
-            return await _context.Set<Encomenda>()
-                .Include(e => e.Itens)
-                .ThenInclude(i => i.Produto)
-                .OrderByDescending(e => e.Data)
-                .ToListAsync();
-        }
 
         public async Task<Encomenda?> GetEncomendaPorId(int id)
         {
-            return await _context.Set<Encomenda>()
-                .Include(e => e.Itens)
-                .ThenInclude(i => i.Produto)
-                .FirstOrDefaultAsync(e => e.Id == id);
+            return await _context.Encomendas
+               .Include(e => e.Cliente)
+               .Include(e => e.Itens)
+               .ThenInclude(i => i.Produto)
+               .FirstOrDefaultAsync(e => e.Id == id);
         }
+
         public async Task AtualizarEstado(int encomendaId, string novoEstado)
         {
-            // 1. Procurar a encomenda (não precisamos dos Itens aqui, só da encomenda base)
-            var encomenda = await _context.Set<Encomenda>().FindAsync(encomendaId);
-
-            if (encomenda == null)
+            var encomenda = await _context.Encomendas.FindAsync(encomendaId);
+            if (encomenda != null)
             {
-                throw new Exception("Encomenda não encontrada.");
+                encomenda.Estado = novoEstado;
+                await _context.SaveChangesAsync();
             }
-
-            // 2. Atualizar o estado
-            encomenda.Estado = novoEstado;
-
-            // 3. Guardar na BD
-            await _context.SaveChangesAsync();
         }
+
         public async Task<IEnumerable<VendaFornecedorDTO>> GetVendasDoFornecedor(string fornecedorId)
         {
             return await _context.Set<EncomendaItem>()

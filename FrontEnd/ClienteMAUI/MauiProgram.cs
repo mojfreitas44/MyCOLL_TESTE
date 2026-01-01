@@ -53,6 +53,9 @@ namespace ClienteMAUI
             // 7. Registar o Serviço do Carrinho de Compras
             builder.Services.AddScoped<CarrinhoService>();
 
+            // 8. Registar o Serviço de Encomendas
+            builder.Services.AddScoped<EncomendasCliente>();
+
             // --- FIM DAS CONFIGURAÇÕES ---
 
             return builder.Build();

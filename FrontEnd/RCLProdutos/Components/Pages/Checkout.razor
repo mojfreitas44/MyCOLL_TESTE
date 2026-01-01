@@ -1,0 +1,255 @@
+﻿@page "/checkout"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject CarrinhoService CarrinhoSvc
+@inject EncomendasCliente EncomendasSvc
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<PageTitle>Checkout</PageTitle>
+
+<div class="container py-5">
+    <h2 class="fw-bold mb-4 text-dark"><i class="bi bi-credit-card me-2"></i>Finalizar Compra</h2>
+
+    @if (carrinhoVazio)
+    {
+        <div class="alert alert-warning">O carrinho está vazio. <a href="loja">Ir para a loja</a>.</div>
+    }
+    else
+    {
+        <EditForm Model="@checkoutModel" OnValidSubmit="ConfirmarEncomenda">
+            <DataAnnotationsValidator />
+
+            <div class="row">
+                <div class="col-lg-7">
+
+                    @* --- 1. MORADA --- *@
+                    <div class="card shadow-sm border-0 rounded-4 mb-4">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h5 class="fw-bold text-primary m-0">Morada de Envio</h5>
+                        </div>
+                        <div class="card-body">
+                            <label class="form-label fw-bold small text-secondary">Morada Completa</label>
+                            <InputTextArea @bind-Value="checkoutModel.MoradaEnvio" class="form-control bg-light border-0" rows="3" placeholder="Rua, Código Postal, Cidade..." />
+                            <ValidationMessage For="@(() => checkoutModel.MoradaEnvio)" />
+                        </div>
+                    </div>
+
+                    @* --- 2. MODO DE ENTREGA (Visual Anterior) --- *@
+                    <div class="card shadow-sm border-0 rounded-4 mb-4">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h5 class="fw-bold text-primary m-0">Entrega</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (modosEntrega != null)
+                            {
+                                <InputRadioGroup @bind-Value="checkoutModel.ModoEntregaId">
+                                    @foreach (var modo in modosEntrega)
+                                    {
+                                        <div class="form-check mb-2">
+                                            <InputRadio Value="@modo.Id" class="form-check-input" />
+                                            <label class="form-check-label">
+                                                @modo.Nome - <strong>@modo.Preco.ToString("C")</strong>
+                                            </label>
+                                        </div>
+                                    }
+                                </InputRadioGroup>
+                            }
+                            else
+                            {
+                                <p class="text-muted small">A carregar métodos de entrega...</p>
+                            }
+                        </div>
+                    </div>
+
+                    @* --- 3. PAGAMENTO --- *@
+                    <div class="card shadow-sm border-0 rounded-4 mb-4">
+                        <div class="card-header bg-white border-0 py-3">
+                            <h5 class="fw-bold text-primary m-0">Pagamento</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold small text-secondary">Método de Pagamento</label>
+                                <InputSelect @bind-Value="checkoutModel.MetodoPagamento" class="form-select bg-light border-0">
+                                    <option value="">Selecionar Cartão...</option>
+                                    <option value="Visa">Visa</option>
+                                    <option value="Mastercard">Mastercard</option>
+                                </InputSelect>
+                                <ValidationMessage For="@(() => checkoutModel.MetodoPagamento)" />
+                            </div>
+
+                            @if (checkoutModel.MetodoPagamento == "Visa" || checkoutModel.MetodoPagamento == "Mastercard")
+                            {
+                                <div class="p-3 bg-light rounded-3 mt-3 border">
+                                    <h6 class="fw-bold mb-3 text-dark">Dados do Cartão</h6>
+
+                                    <div class="mb-3">
+                                        <label class="small text-muted">Número do Cartão (16 dígitos)</label>
+                                        <InputText @bind-Value="checkoutModel.NumeroCartao" class="form-control" placeholder="0000000000000000" maxlength="16" />
+                                        <ValidationMessage For="@(() => checkoutModel.NumeroCartao)" />
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label class="small text-muted">Validade (MM/AA)</label>
+                                            <InputText @bind-Value="checkoutModel.Validade" class="form-control" placeholder="MM/AA" maxlength="5" />
+                                            <ValidationMessage For="@(() => checkoutModel.Validade)" />
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="small text-muted">CVV (3 dígitos)</label>
+                                            <InputText @bind-Value="checkoutModel.CVV" class="form-control" placeholder="123" maxlength="3" />
+                                            <ValidationMessage For="@(() => checkoutModel.CVV)" />
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                </div>
+
+                @* --- RESUMO --- *@
+                <div class="col-lg-5">
+                    <div class="card shadow border-0 rounded-4 bg-white sticky-top" style="top: 20px;">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold mb-4">Resumo</h4>
+
+                            <ul class="list-group list-group-flush mb-3">
+                                @foreach (var item in itensCarrinho)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between px-0">
+                                        <small>@item.Quantidade x @item.Produto.Nome</small>
+                                        <small class="fw-bold">@item.PrecoTotal.ToString("C")</small>
+                                    </li>
+                                }
+                            </ul>
+
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Subtotal</span>
+                                <span>@subtotal.ToString("C")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-4">
+                                <span>Envio</span>
+                                <span class="text-success">
+                                    @{
+                                        var custo = modosEntrega?.FirstOrDefault(m => m.Id == checkoutModel.ModoEntregaId)?.Preco ?? 0;
+                                    }
+                                    @custo.ToString("C")
+                                </span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <span class="fw-bold fs-5">Total</span>
+                                <span class="fw-bold fs-2 text-primary">@((subtotal + custo).ToString("C"))</span>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100 rounded-pill py-3 fw-bold shadow">
+                                Pagar e Confirmar <i class="bi bi-check-lg ms-2"></i>
+                            </button>
+
+                            @if (!string.IsNullOrEmpty(msgErro))
+                            {
+                                <div class="alert alert-danger mt-3 small text-center">@msgErro</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    }
+</div>
+
+@code {
+    private CheckoutDTO checkoutModel = new CheckoutDTO();
+    private List<ItemCarrinho> itensCarrinho = new();
+    private List<ModoEntregaDTO>? modosEntrega;
+    private decimal subtotal = 0;
+    private bool carrinhoVazio = false;
+    private string msgErro = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        itensCarrinho = await CarrinhoSvc.GetItens();
+        if (!itensCarrinho.Any()) { carrinhoVazio = true; return; }
+
+        subtotal = itensCarrinho.Sum(i => i.PrecoTotal);
+
+        try
+        {
+            modosEntrega = await EncomendasSvc.GetModosEntrega();
+            if (modosEntrega != null && modosEntrega.Any())
+                checkoutModel.ModoEntregaId = modosEntrega.First().Id;
+        }
+        catch { }
+    }
+
+    private bool ValidarDataExpiracao(string? validade) // <--- Adicionado o ? aqui
+    {
+        // 1. Se for nulo ou vazio, é inválido logo à partida
+        if (string.IsNullOrWhiteSpace(validade)) return false;
+
+        try
+        {
+            var parts = validade.Split('/');
+            if (parts.Length != 2) return false;
+
+            if (!int.TryParse(parts[0], out int mes) || !int.TryParse(parts[1], out int ano))
+                return false;
+
+            if (mes < 1 || mes > 12) return false;
+
+            // Assume século 21 (20xx)
+            int anoCompleto = 2000 + ano;
+
+            // Último dia do mês de validade
+            var dataExpiracao = new DateTime(anoCompleto, mes, 1).AddMonths(1).AddDays(-1);
+
+            // Verifica se a data atual é anterior à expiração
+            return dataExpiracao >= DateTime.Now;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task ConfirmarEncomenda()
+    {
+        msgErro = "";
+
+        // Validar manualmente a data (Regex só valida formato)
+        if (!ValidarDataExpiracao(checkoutModel.Validade))
+        {
+            msgErro = "O cartão está expirado ou a data é inválida.";
+            return;
+        }
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var idClaim = authState.User.FindFirst(c => c.Type == "Id" || c.Type == System.Security.Claims.ClaimTypes.NameIdentifier);
+
+        if (idClaim != null && int.TryParse(idClaim.Value, out int uid))
+        {
+            checkoutModel.UtilizadorId = uid;
+        }
+
+        checkoutModel.Itens = itensCarrinho.Select(i => new ItemCarrinhoDTO
+        {
+            ProdutoId = i.Produto.Id,
+            Quantidade = i.Quantidade,
+            PrecoUnitario = i.Produto.PrecoVenda
+        }).ToList();
+
+        bool sucesso = await EncomendasSvc.SubmeterEncomenda(checkoutModel);
+
+        if (sucesso)
+        {
+            await CarrinhoSvc.LimparCarrinho();
+            Nav.NavigateTo("/"); //Encomendas
+        }
+        else
+        {
+            msgErro = "Erro ao processar. Verifique os dados.";
+        }
+    }
+}
