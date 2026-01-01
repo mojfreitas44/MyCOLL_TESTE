@@ -92,15 +92,18 @@
                                 }
                             </td>
                             <td class="text-end">
+                                @* Botão Editar com Texto *@
                                 <button class="btn btn-sm btn-outline-primary me-1"
                                         @onclick="() => EditarProduto(p.Id)"
                                         title="Editar">
-                                    <i class="bi bi-pencil"></i>
+                                    <i class="bi bi-pencil me-1"></i>Editar
                                 </button>
+
+                                @* Botão Apagar com Texto *@
                                 <button class="btn btn-sm btn-outline-danger"
                                         @onclick="() => ApagarProduto(p.Id, p.Nome)"
                                         title="Apagar">
-                                    <i class="bi bi-trash"></i>
+                                    <i class="bi bi-trash me-1"></i>Apagar
                                 </button>
                             </td>
                         </tr>

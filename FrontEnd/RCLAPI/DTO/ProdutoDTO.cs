@@ -14,7 +14,7 @@ namespace RCLAPI.DTO
         public bool ParaVenda { get; set; }
         public string Estado { get; set; } = string.Empty;
         public int Stock { get; set; }
-
+        public int CategoriaId { get; set; } //Testando
         public string? CategoriaNome { get; set; }
         public string? FornecedorNome { get; set; }
         public string Condicao { get; set; } = string.Empty;

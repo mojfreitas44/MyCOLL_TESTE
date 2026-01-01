@@ -1,0 +1,286 @@
+﻿@page "/fornecedor/produtos/criar"
+@page "/fornecedor/produtos/editar/{Id:int}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject FornecedorService FornecedorService
+@inject CategoriasCliente CategoriasService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@attribute [Authorize(Roles = "Fornecedor")]
+
+<div class="container mt-4 mb-5">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white d-flex align-items-center">
+            <i class="@(Id == null ? "bi bi-plus-circle" : "bi bi-pencil") me-2 fs-5"></i>
+            <h4 class="mb-0">
+                @(Id == null ? "Novo Produto" : "Editar Produto")
+            </h4>
+        </div>
+
+        @if (Id.HasValue)
+        {
+            <div class="alert alert-warning m-0 rounded-0 text-center fw-bold">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Atenção: Ao editar, o produto volta a ficar <span class="text-decoration-underline">Pendente</span>.
+            </div>
+        }
+
+        <div class="card-body bg-light">
+            @if (carregando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            }
+            else
+            {
+                <EditForm Model="produto" OnValidSubmit="SalvarProduto">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert alert-danger mb-3" />
+
+                    <div class="row">
+                        @* --- Coluna da Esquerda --- *@
+                        <div class="col-md-8">
+
+                            <div class="form-floating mb-3">
+                                <InputText id="nome" class="form-control" @bind-Value="produto.Nome" placeholder="Nome" />
+                                <label for="nome">Nome do Produto *</label>
+                                <ValidationMessage For="@(() => produto.Nome)" class="text-danger small" />
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <InputTextArea id="desc" class="form-control" @bind-Value="produto.Descricao"
+                                               style="height: 120px" placeholder="Descrição" />
+                                <label for="desc">Descrição Detalhada *</label>
+                                <ValidationMessage For="@(() => produto.Descricao)" class="text-danger small" />
+                            </div>
+
+                            <div class="row g-2">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold small text-muted">Preço Base (€) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">€</span>
+                                        <InputNumber class="form-control" @bind-Value="produto.PrecoVenda" />
+                                    </div>
+                                    <ValidationMessage For="@(() => produto.PrecoVenda)" class="text-danger small" />
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold small text-muted">Stock (Min: @stockMinimo) *</label>
+                                    @* O 'min' no HTML ajuda visualmente, mas validamos no C# também *@
+                                    <InputNumber class="form-control" @bind-Value="produto.Stock" min="@stockMinimo" />
+                                    <ValidationMessage For="@(() => produto.Stock)" class="text-danger small" />
+                                    @if (stockMinimo > 0)
+                                    {
+                                        <div class="form-text text-muted" style="font-size: 0.75rem">
+                                            Não pode reduzir o stock atual (@stockMinimo).
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold small text-muted">Condição</label>
+                                    <InputSelect class="form-select" @bind-Value="produto.Condicao">
+                                        <option value="Usado">Usado</option>
+                                        <option value="Novo">Novo</option>
+                                    </InputSelect>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Categoria *</label>
+                                <InputSelect class="form-select" @bind-Value="produto.CategoriaId">
+                                    <option value="0" disabled selected>-- Selecione uma Categoria --</option>
+                                    @foreach (var cat in categorias)
+                                    {
+                                        <option value="@cat.Id">@cat.Nome</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => produto.CategoriaId)" class="text-danger small" />
+                            </div>
+                        </div>
+
+                        @* --- Coluna da Direita: Imagem --- *@
+                        <div class="col-md-4">
+                            <div class="card h-100">
+                                <div class="card-header text-center bg-white fw-bold">Imagem</div>
+                                <div class="card-body d-flex flex-column align-items-center justify-content-center bg-secondary bg-opacity-10">
+
+                                    @if (!string.IsNullOrEmpty(previewImagem))
+                                    {
+                                        <img src="@previewImagem" class="img-fluid rounded shadow-sm mb-3"
+                                             style="max-height: 200px; object-fit: contain;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted text-center mb-3">
+                                            <i class="bi bi-image" style="font-size: 4rem;"></i>
+                                            <p class="small">Sem imagem</p>
+                                        </div>
+                                    }
+
+                                    <div class="d-flex gap-2 w-100">
+                                        @* Input File *@
+                                        <InputFile OnChange="CarregarImagem" class="form-control form-control-sm" accept=".jpg,.jpeg,.png" @key="inputFileId" />
+
+                                        @* Botão Remover (X) - Aparece sempre que houver preview *@
+                                        @if (!string.IsNullOrEmpty(previewImagem))
+                                        {
+                                            <button type="button" class="btn btn-danger btn-sm" @onclick="RemoverImagemSelecionada" title="Remover imagem atual">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                    <small class="text-muted mt-2 text-center d-block" style="font-size: 0.7rem;">
+                                        JPG/PNG (Max 2MB)
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="fornecedor/produtos" class="btn btn-outline-secondary px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            <i class="bi bi-save me-2"></i>Guardar Produto
+                        </button>
+                    </div>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    private ProdutoCreateDTO produto = new() { Condicao = "Usado" };
+    private List<CategoriaDTO> categorias = new();
+
+    private string? previewImagem;
+    private int stockMinimo = 0; // Controlo de Stock Mínimo
+
+    private bool carregando = true;
+    private Guid inputFileId = Guid.NewGuid();
+    private const long MaxFileSize = 2 * 1024 * 1024;
+
+    protected override async Task OnInitializedAsync()
+    {
+        carregando = true;
+        try
+        {
+            categorias = await CategoriasService.GetCategorias() ?? new List<CategoriaDTO>();
+
+            if (Id.HasValue)
+            {
+                var meusProdutos = await FornecedorService.GetMeusProdutos();
+                var p = meusProdutos.FirstOrDefault(x => x.Id == Id.Value);
+
+                if (p != null)
+                {
+                    // Guardamos o stock atual como o mínimo permitido
+                    stockMinimo = p.Stock;
+
+                    produto = new ProdutoCreateDTO
+                    {
+                        Nome = p.Nome ?? "",
+                        Descricao = p.Descricao ?? "",
+                        PrecoVenda = p.PrecoVenda,
+                        Stock = p.Stock,
+                        Condicao = string.IsNullOrEmpty(p.Condicao) ? "Usado" : p.Condicao,
+                        CategoriaId = p.CategoriaId
+                    };
+
+                    if (!string.IsNullOrEmpty(p.ImagemSrc))
+                    {
+                        previewImagem = p.ImagemSrc;
+                    }
+                }
+                else
+                {
+                    await JS.InvokeVoidAsync("alert", "Produto não encontrado.");
+                    Nav.NavigateTo("fornecedor/produtos");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro: {ex.Message}");
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private async Task CarregarImagem(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var ficheiro = e.GetMultipleFiles(1).FirstOrDefault();
+            if (ficheiro != null)
+            {
+                if (ficheiro.Size > MaxFileSize)
+                {
+                    await JS.InvokeVoidAsync("alert", "Imagem muito grande! Máx 2MB.");
+                    RemoverImagemSelecionada();
+                    return;
+                }
+
+                using var stream = ficheiro.OpenReadStream(MaxFileSize);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+
+                var base64 = Convert.ToBase64String(ms.ToArray());
+                produto.ImagemBase64 = base64;
+                produto.RemoverImagem = false; // Tem nova imagem, não é para remover
+                previewImagem = $"data:{ficheiro.ContentType};base64,{base64}";
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", "Erro ao ler imagem: " + ex.Message);
+            RemoverImagemSelecionada();
+        }
+    }
+
+    private void RemoverImagemSelecionada()
+    {
+        produto.ImagemBase64 = null;
+        produto.RemoverImagem = true; // SINALIZA À API QUE QUEREMOS APAGAR
+        previewImagem = null;
+        inputFileId = Guid.NewGuid();
+    }
+
+    private async Task SalvarProduto()
+    {
+        // === VALIDAÇÃO DE STOCK ===
+        // O fornecedor só pode aumentar ou manter, nunca reduzir.
+        if (Id.HasValue && produto.Stock < stockMinimo)
+        {
+            await JS.InvokeVoidAsync("alert", $"Não pode reduzir o stock! O valor mínimo permitido é {stockMinimo}.");
+            return; // Interrompe o envio
+        }
+
+        bool sucesso;
+        if (Id.HasValue)
+            sucesso = await FornecedorService.EditarProduto(Id.Value, produto);
+        else
+            sucesso = await FornecedorService.CriarProduto(produto);
+
+        if (sucesso)
+        {
+            await JS.InvokeVoidAsync("alert", "Produto guardado com sucesso!");
+            Nav.NavigateTo("fornecedor/produtos");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Erro ao guardar. Verifique os dados.");
+        }
+    }
+}

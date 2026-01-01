@@ -13,7 +13,7 @@ namespace RCLAPI.DTO
         [Range(0.01, double.MaxValue, ErrorMessage = "O preço deve ser maior que 0")]
         public decimal PrecoVenda { get; set; }
 
-        [Range(1, int.MaxValue, ErrorMessage = "O stock deve ser pelo menos 1")]
+        [Range(0, int.MaxValue, ErrorMessage = "O stock não pode ser negativo")]
         public int Stock { get; set; }
 
         [Required]
@@ -24,5 +24,6 @@ namespace RCLAPI.DTO
 
         // Imagem em Base64 para envio
         public string? ImagemBase64 { get; set; }
+        public bool RemoverImagem { get; set; } = false;
     }
 }

@@ -43,13 +43,28 @@ namespace API.Controllers
                 Id = p.Id,
                 Nome = p.Nome,
                 Descricao = p.Descricao,
-                PrecoVenda = p.PrecoVenda,
+
+                // --- CORREÇÃO 1: Preço ---
+                // Agora mostramos o PrecoBase (o que tu definiste) e não o PrecoVenda (que tem a margem da loja)
+                PrecoVenda = p.PrecoBase,
+
+                // --- CORREÇÃO 2: Stock ---
+                // Faltava esta linha, por isso aparecia sempre 0
+                Stock = p.Stock,
+
                 Condicao = p.Condicao,
+
+                // --- CORREÇÃO 3: Estado ---
+                // Faltava mapear o estado explicitamente para o campo 'Estado' do DTO
+                Estado = p.Estado,
+
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
                 FornecedorNome = !string.IsNullOrEmpty(p.Fornecedor?.Nome) ?
                     p.Fornecedor.Nome : (p.Fornecedor?.UserName ?? "Produto Oficial"),
                 Imagem = p.Imagem,
+
+                // Mantemos a disponibilidade igual ao estado para compatibilidade
                 Disponibilidade = p.Estado
             });
 
@@ -106,7 +121,7 @@ namespace API.Controllers
 
             if (dto.Stock < produto.Stock)
             {
-                return BadRequest($"Erro: Não pode reduzir o stock manualmente (Stock Atual: {produto.Stock}). Apenas vendas reduzem o stock.");
+                return BadRequest($"Erro: Não pode reduzir o stock (Atual: {produto.Stock}).");
             }
 
             produto.Nome = dto.Nome;
@@ -117,7 +132,11 @@ namespace API.Controllers
             produto.Condicao = dto.Condicao;
             produto.CategoriaId = dto.CategoriaId;
 
-            if (!string.IsNullOrEmpty(dto.ImagemBase64))
+            if (dto.RemoverImagem)
+            {
+                produto.Imagem = null; // Apaga a imagem se o user clicou no X
+            }
+            else if (!string.IsNullOrEmpty(dto.ImagemBase64))
             {
                 try { produto.Imagem = Convert.FromBase64String(dto.ImagemBase64); } catch { }
             }
