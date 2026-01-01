@@ -11,7 +11,7 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Autenticação básica obrigatória para todos
+    [Authorize]
     public class EncomendasController : ControllerBase
     {
         private readonly IEncomendaRepository _encomendaRepository;
@@ -23,16 +23,16 @@ namespace API.Controllers
             _userManager = userManager;
         }
 
-        // 1. CRIAR ENCOMENDA (Checkout)
-        // LÓGICA: Apenas 'Cliente' pode criar encomendas.
+        // 1. CRIAR ENCOMENDA
         [HttpPost]
+        // Se tiveres problemas com roles no checkout, podes remover esta linha também,
+        // mas no checkout convém manter se possível.
         [Authorize(Roles = "Cliente")]
         public async Task<ActionResult<EncomendaDTO>> Checkout([FromBody] CheckoutDto dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Unauthorized();
 
-            // Verificação extra de segurança da conta
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null || user.Estado != "Ativo") return StatusCode(403, "Conta inativa.");
 
@@ -40,7 +40,7 @@ namespace API.Controllers
             {
                 var novaEncomenda = await _encomendaRepository.CriarEncomenda(userId, dto);
 
-                // Mapeamento manual para DTO
+                // Mapeamento DTO
                 var resultado = new EncomendaDTO
                 {
                     Id = novaEncomenda.Id,
@@ -68,21 +68,18 @@ namespace API.Controllers
         }
 
         // 2. LISTAR ENCOMENDAS
-        // LÓGICA: Admin/Funcionario vê TUDO. Cliente vê SÓ AS SUAS.
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EncomendaDTO>>> GetEncomendas()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             IEnumerable<Encomenda> encomendas;
 
-            // Se for Gestão, vê o histórico global
             if (User.IsInRole("Administrador") || User.IsInRole("Funcionario"))
             {
                 encomendas = await _encomendaRepository.GetAllEncomendas();
             }
             else
             {
-                // Se for Cliente, vê apenas as suas
                 encomendas = await _encomendaRepository.GetEncomendasDoCliente(userId!);
             }
 
@@ -107,8 +104,7 @@ namespace API.Controllers
             return Ok(dtos);
         }
 
-        // 3. DETALHES DA ENCOMENDA
-        // LÓGICA: Admin vê qualquer uma. Cliente só vê se for dele.
+        // 3. DETALHES
         [HttpGet("{id}")]
         public async Task<ActionResult<EncomendaDTO>> GetDetalhes(int id)
         {
@@ -117,12 +113,10 @@ namespace API.Controllers
 
             if (User.IsInRole("Administrador") || User.IsInRole("Funcionario"))
             {
-                // Admin procura sem filtro de utilizador
                 encomenda = await _encomendaRepository.GetEncomendaPorId(id);
             }
             else
             {
-                // Cliente procura com filtro de utilizador (Segurança)
                 encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId!, id);
             }
 
@@ -149,27 +143,25 @@ namespace API.Controllers
             return Ok(dto);
         }
 
-        // 4. CONFIRMAR RECEÇÃO (Ação do Cliente)
+        // 4. CONFIRMAR RECEÇÃO (CORRIGIDO)
         [HttpPatch("{id}/confirmar-entrega")]
-        [Authorize(Roles = "Cliente")]
         public async Task<IActionResult> ConfirmarEntrega(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Unauthorized();
 
             // Validar se a encomenda existe e pertence ao cliente
-            var encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId!, id);
+            var encomenda = await _encomendaRepository.GetDetalhesEncomenda(userId, id);
 
             if (encomenda == null)
                 return NotFound(new { Message = "Encomenda não encontrada." });
 
-            // Só permite confirmar se já tiver sido enviada
-            if (encomenda.Estado != "Enviado")
-                return BadRequest(new { Message = "Não é possível confirmar receção de uma encomenda que não foi enviada." });
+            if (!encomenda.Estado.Equals("Enviado", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { Message = $"Não é possível confirmar. Estado atual: {encomenda.Estado}" });
 
             try
             {
-                // Atualiza o estado
-                await _encomendaRepository.AtualizarEstado(id, "Entregue"); // Vais precisar de criar este método no Repository ou fazer direto se preferires
+                await _encomendaRepository.AtualizarEstado(id, "Entregue");
                 return Ok(new { Message = "Encomenda marcada como entregue." });
             }
             catch (Exception ex)

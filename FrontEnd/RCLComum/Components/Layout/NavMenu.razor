@@ -35,7 +35,7 @@
                 </li>
 
                 @* --- CARRINHO --- *@
-                <li class="nav-item">
+                <li class="nav-item me-3">
                     <NavLink class="nav-link position-relative d-flex align-items-center" href="carrinho">
                         <img src="_content/RCLImages/images/cart.png"
                              alt="Carrinho"
@@ -51,19 +51,48 @@
                     </NavLink>
                 </li>
 
+                @* --- ZONA DE UTILIZADOR (Lógica 100% C#) --- *@
                 <AuthorizeView>
                     <Authorized>
-                        @* --- SAUDAÇÃO SIMPLES (Sem Dropdown) --- *@
-                        <li class="nav-item ms-lg-3 d-flex align-items-center text-white">
-                            <i class="bi bi-person-circle me-2"></i>
-                            <span class="fw-bold">Olá, @context.User.Identity?.Name</span>
-                        </li>
+                        <li class="nav-item dropdown position-relative">
+                            @* Ao clicar, chamamos ToggleUserMenu que inverte o booleano. 
+                                @onclick:preventDefault evita que a página salte para o topo.
+                            *@
+                            <a class="nav-link dropdown-toggle text-white fw-bold d-flex align-items-center"
+                               href="#"
+                               @onclick="ToggleUserMenu"
+                               @onclick:preventDefault>
+                                <i class="bi bi-person-circle me-2 fs-5"></i>
+                                <span>Olá, @context.User.Identity?.Name</span>
+                            </a>
 
-                        @* --- BOTÃO SAIR --- *@
-                        <li class="nav-item ms-lg-3 mt-2 mt-lg-0">
-                            <button class="btn btn-outline-light rounded-pill btn-sm px-3 shadow-sm" @onclick="Logout">
-                                <i class="bi bi-box-arrow-right me-1"></i> Sair
-                            </button>
+                            @* A classe 'show' é adicionada se expandirMenuUtilizador for true *@
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2 @(expandirMenuUtilizador ? "show" : "")"
+                                style="position: absolute; right: 0; left: auto;">
+
+                                @* Link Perfil *@
+                                <li>
+                                    <NavLink class="dropdown-item" href="perfil" @onclick="FecharMenus">
+                                        <i class="bi bi-person me-2"></i>Minha Conta
+                                    </NavLink>
+                                </li>
+
+                                @* Link Encomendas *@
+                                <li>
+                                    <NavLink class="dropdown-item" href="encomendas" @onclick="FecharMenus">
+                                        <i class="bi bi-box-seam me-2"></i>Minhas Encomendas
+                                    </NavLink>
+                                </li>
+
+                                <li><hr class="dropdown-divider"></li>
+
+                                @* Botão Sair *@
+                                <li>
+                                    <button class="dropdown-item text-danger fw-bold" @onclick="Logout">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Sair
+                                    </button>
+                                </li>
+                            </ul>
                         </li>
                     </Authorized>
                     <NotAuthorized>
@@ -89,22 +118,56 @@
         font-size: 1.05rem;
         margin: 0 5px;
         transition: all 0.3s;
+        cursor: pointer;
     }
 
         .nav-link:hover {
             color: #ffc107 !important;
             transform: translateY(-2px);
         }
+
+    /* Animação suave para o menu */
+    .dropdown-menu.show {
+        animation: fadeIn 0.3s;
+        display: block; /* Garante que aparece */
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 </style>
 
 @code {
     private bool collapseNavMenu = true;
+    private bool expandirMenuUtilizador = false; // Variável nova para controlar o Dropdown
+
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
     private int contagemCarrinho = 0;
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    // Método para abrir/fechar o Dropdown do Utilizador
+    private void ToggleUserMenu()
+    {
+        expandirMenuUtilizador = !expandirMenuUtilizador;
+    }
+
+    // Fecha os menus quando se clica num link
+    private void FecharMenus()
+    {
+        expandirMenuUtilizador = false;
+        collapseNavMenu = true;
     }
 
     protected override async Task OnInitializedAsync()
@@ -121,6 +184,8 @@
 
     private async Task Logout()
     {
+        FecharMenus();
+        await CarrinhoService.LimparCarrinho();
         await Auth.Logout();
         Nav.NavigateTo("/", forceLoad: true);
     }

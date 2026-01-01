@@ -16,28 +16,25 @@ namespace API.Repositories
 
         public async Task<Encomenda> CriarEncomenda(string userId, CheckoutDto dto)
         {
-            // 1. VALIDAR PAGAMENTO (SÓ VISA/MASTERCARD)
+            // 1. Validar Pagamento
             var metodosAceites = new[] { "Visa", "Mastercard" };
             if (!metodosAceites.Contains(dto.MetodoPagamento))
             {
-                throw new Exception($"Método inválido. Aceitamos apenas: {string.Join(", ", metodosAceites)}.");
+                throw new Exception($"Método inválido. Aceitamos: {string.Join(", ", metodosAceites)}.");
             }
 
-            // 2. VALIDAR CARTÃO
             if (string.IsNullOrEmpty(dto.NumeroCartao) || dto.NumeroCartao.Length < 15)
                 throw new Exception("Cartão inválido.");
 
-            // 3. VALIDAR MODO DE ENTREGA
+            // 2. Validar Entrega
             var modoEntrega = await _context.ModosEntrega.FindAsync(dto.ModoEntregaId);
             if (modoEntrega == null) throw new Exception("Modo de entrega inválido.");
 
-            // 4. VALIDAR SE O CARRINHO TEM ITENS (Vem do Frontend)
+            // 3. Validar Itens
             if (dto.Itens == null || !dto.Itens.Any())
-            {
-                throw new Exception("O carrinho está vazio.");
-            }
+                throw new Exception("Carrinho vazio.");
 
-            // 5. CRIAR ENCOMENDA
+            // 4. Criar Cabeçalho
             var encomenda = new Encomenda
             {
                 ClienteId = userId,
@@ -45,19 +42,18 @@ namespace API.Repositories
                 Estado = "Pendente",
                 MoradaEnvio = dto.MoradaEnvio,
                 MetodoPagamento = dto.MetodoPagamento,
-                MetodoEntrega = modoEntrega.Nome, // Guardamos o nome porque a tua tabela não tem o ID
+                MetodoEntrega = modoEntrega.Nome,
                 ValorTotal = 0,
                 Itens = new List<EncomendaItem>()
             };
 
-            _context.Encomendas.Add(encomenda); // Prepara para gerar ID
+            _context.Set<Encomenda>().Add(encomenda); // Usar Set<T> é mais seguro
 
             decimal totalItens = 0;
 
-            // 6. PROCESSAR PRODUTOS
+            // 5. Processar Itens
             foreach (var itemDto in dto.Itens)
             {
-                // Buscar produto à BD para garantir preço e stock reais
                 var produto = await _context.Produtos.FindAsync(itemDto.ProdutoId);
 
                 if (produto == null)
@@ -66,38 +62,30 @@ namespace API.Repositories
                 if (produto.Stock < itemDto.Quantidade)
                     throw new Exception($"Stock insuficiente para '{produto.Nome}'.");
 
-                // Criar linha da encomenda
                 var linha = new EncomendaItem
                 {
                     Encomenda = encomenda,
                     ProdutoId = produto.Id,
                     Quantidade = itemDto.Quantidade,
-                    PrecoUnitario = produto.PrecoVenda // CORRIGIDO: Usar PrecoVenda
+                    PrecoUnitario = produto.PrecoVenda
                 };
 
-                // Abater ao Stock
                 produto.Stock -= itemDto.Quantidade;
-
-                // Somar
                 totalItens += (linha.PrecoUnitario * linha.Quantidade);
-
                 encomenda.Itens.Add(linha);
             }
 
-            // 7. CALCULAR TOTAL (Produtos + Portes)
             encomenda.ValorTotal = totalItens + modoEntrega.Preco;
-
-            // 8. GRAVAR
             await _context.SaveChangesAsync();
 
             return encomenda;
         }
 
-        // --- OUTROS MÉTODOS (MANTÊM-SE IGUAIS, SÓ VERIFICAR O INCLUDE) ---
+        // --- MÉTODOS DE LEITURA ---
 
         public async Task<IEnumerable<Encomenda>> GetEncomendasDoCliente(string userId)
         {
-            return await _context.Encomendas
+            return await _context.Set<Encomenda>()
                 .Include(e => e.Itens)
                 .ThenInclude(i => i.Produto)
                 .Where(e => e.ClienteId == userId)
@@ -107,7 +95,7 @@ namespace API.Repositories
 
         public async Task<IEnumerable<Encomenda>> GetAllEncomendas()
         {
-            return await _context.Encomendas
+            return await _context.Set<Encomenda>()
                 .Include(e => e.Cliente)
                 .Include(e => e.Itens)
                 .ThenInclude(i => i.Produto)
@@ -117,7 +105,7 @@ namespace API.Repositories
 
         public async Task<Encomenda?> GetDetalhesEncomenda(string userId, int encomendaId)
         {
-            return await _context.Encomendas
+            return await _context.Set<Encomenda>()
                 .Include(e => e.Itens)
                 .ThenInclude(i => i.Produto)
                 .FirstOrDefaultAsync(e => e.Id == encomendaId && e.ClienteId == userId);
@@ -125,16 +113,19 @@ namespace API.Repositories
 
         public async Task<Encomenda?> GetEncomendaPorId(int id)
         {
-            return await _context.Encomendas
+            return await _context.Set<Encomenda>()
                .Include(e => e.Cliente)
                .Include(e => e.Itens)
                .ThenInclude(i => i.Produto)
                .FirstOrDefaultAsync(e => e.Id == id);
         }
 
+        // --- MÉTODO DE ATUALIZAÇÃO CORRIGIDO ---
         public async Task AtualizarEstado(int encomendaId, string novoEstado)
         {
-            var encomenda = await _context.Encomendas.FindAsync(encomendaId);
+            // Usamos Set<Encomenda>() para garantir que funciona
+            var encomenda = await _context.Set<Encomenda>().FindAsync(encomendaId);
+
             if (encomenda != null)
             {
                 encomenda.Estado = novoEstado;

@@ -1,0 +1,150 @@
+﻿@page "/encomendas"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject EncomendasCliente EncomendasSvc
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<PageTitle>Minhas Encomendas</PageTitle>
+
+<div class="container py-5">
+    <h2 class="fw-bold mb-4 text-dark"><i class="bi bi-box-seam me-2"></i>Histórico de Encomendas</h2>
+    @* --- BLOCO DE ERRO NOVO --- *@
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @mensagemErro
+            <button type="button" class="btn-close" @onclick='() => mensagemErro = ""'></button>
+        </div>
+    }
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">A carregar...</p>
+        </div>
+    }
+    else if (encomendas == null || !encomendas.Any())
+    {
+        <div class="alert alert-info rounded-4 border-0 shadow-sm">
+            <i class="bi bi-info-circle me-2"></i>Ainda não tens encomendas registadas.
+            <a href="loja" class="fw-bold text-decoration-none">Ir para a Loja</a>.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var enc in encomendas)
+            {
+                <div class="col-12 mb-4">
+                    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+
+                        @* CABEÇALHO *@
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <span class="fw-bold text-primary me-2">Encomenda #@enc.Id</span>
+                                <small class="text-muted">@enc.Data.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill px-3 py-2 @GetStatusColor(enc.Estado)">
+                                    @enc.Estado
+                                </span>
+
+                                @* BOTÃO CONFIRMAR (Só aparece se estiver ENVIADO) *@
+                                @if (enc.Estado == "Enviado")
+                                {
+                                    <button class="btn btn-sm btn-success rounded-pill fw-bold shadow-sm"
+                                            @onclick="() => MarcarComoRecebida(enc)">
+                                        <i class="bi bi-check2-circle me-1"></i> Confirmar Receção
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        @* DETALHES *@
+                        <div class="card-body">
+                            <div class="row">
+                                @* Lista de Produtos *@
+                                <div class="col-md-8">
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var item in enc.Itens)
+                                        {
+                                            <li class="list-group-item px-0 border-0 d-flex justify-content-between align-items-center">
+                                                <span>
+                                                    <span class="fw-bold">@item.Quantidade x</span> @item.Nome
+                                                </span>
+                                                <span class="fw-bold text-muted">@((item.Preco * item.Quantidade).ToString("C"))</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+
+                                @* Resumo Financeiro *@
+                                <div class="col-md-4 border-start-md ps-md-4 mt-3 mt-md-0">
+                                    <div class="small text-muted mb-1">Entrega: <span class="text-dark fw-bold">@enc.MetodoEntrega</span></div>
+                                    <div class="small text-muted mb-3">Pagamento: <span class="text-dark fw-bold">@enc.MetodoPagamento</span></div>
+
+                                    <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                                        <span class="fs-5 fw-bold">Total</span>
+                                        <span class="fs-4 fw-bold text-primary">@enc.ValorTotal.ToString("C")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<EncomendaDTO> encomendas = new();
+    private bool isLoading = true;
+    private string mensagemErro = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Verificar Login
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            Nav.NavigateTo("login");
+            return;
+        }
+
+        // Buscar Encomendas (O token trata da identificação)
+        encomendas = await EncomendasSvc.GetMinhasEncomendas();
+        isLoading = false;
+    }
+
+    private async Task MarcarComoRecebida(EncomendaDTO encomenda)
+    {
+        mensagemErro = "";
+        bool sucesso = await EncomendasSvc.ConfirmarRececao(encomenda.Id);
+        if (sucesso)
+        {
+            encomenda.Estado = "Entregue"; // Atualiza visualmente logo
+            StateHasChanged();
+        }
+        else
+        {
+            mensagemErro = $"Erro ao confirmar encomenda #{encomenda.Id}. Verifica se já não foi entregue ou tenta recarregar a página.";
+        }
+    }
+
+    private string GetStatusColor(string estado)
+    {
+        return estado switch
+        {
+            "Pendente" => "bg-warning text-dark",
+            "Pago" => "bg-info text-dark",
+            "Enviado" => "bg-primary",
+            "Entregue" => "bg-success",
+            "Cancelado" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}
