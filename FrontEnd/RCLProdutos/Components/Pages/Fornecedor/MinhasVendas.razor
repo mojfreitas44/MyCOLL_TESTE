@@ -1,0 +1,98 @@
+﻿@page "/fornecedor/vendas"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@using Microsoft.AspNetCore.Authorization
+@inject FornecedorService FornecedorService
+@attribute [Authorize(Roles = "Fornecedor")]
+
+<div class="container mt-4">
+    <h3 class="mb-4"><i class="bi bi-cash-coin me-2"></i>Histórico de Vendas</h3>
+
+    @if (carregando)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">A carregar o histórico...</p>
+        </div>
+    }
+    else if (vendas == null || !vendas.Any())
+    {
+        <div class="alert alert-info text-center shadow-sm">
+            <i class="bi bi-info-circle me-2"></i>
+            Ainda não tens vendas registadas.
+        </div>
+    }
+    else
+    {
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div class="card bg-success text-white shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Total Ganho</h6>
+                        <h3>@vendas.Sum(v => v.TotalGanho).ToString("C")</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-primary text-white shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Total Itens Vendidos</h6>
+                        <h3>@vendas.Sum(v => v.Quantidade)</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive shadow-sm rounded bg-white">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Produto</th>
+                        <th>Qtd</th>
+                        <th>Preço Un.</th>
+                        <th>Total</th>
+                        <th>Estado Encomenda</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in vendas)
+                    {
+                        <tr>
+                            <td>@v.DataVenda.ToShortDateString()</td>
+                            <td class="fw-bold">@v.NomeProduto</td>
+                            <td>@v.Quantidade</td>
+                            <td>@v.PrecoUnitario.ToString("C")</td>
+                            <td class="text-success fw-bold">@v.TotalGanho.ToString("C")</td>
+                            <td>
+                                <span class="badge bg-secondary">@v.EstadoEncomenda</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<VendaFornecedorDTO> vendas = new();
+    private bool carregando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        carregando = true;
+        try
+        {
+            vendas = await FornecedorService.GetMinhasVendas() ?? new List<VendaFornecedorDTO>();
+        }
+        catch (Exception)
+        {
+            vendas = new List<VendaFornecedorDTO>();
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+}

@@ -56,6 +56,9 @@ namespace ClienteMAUI
             // 8. Registar o Serviço de Encomendas
             builder.Services.AddScoped<EncomendasCliente>();
 
+            // 9. Registar o Serviço de Fornecedores
+            builder.Services.AddScoped<FornecedorService>();
+
             // --- FIM DAS CONFIGURAÇÕES ---
 
             return builder.Build();

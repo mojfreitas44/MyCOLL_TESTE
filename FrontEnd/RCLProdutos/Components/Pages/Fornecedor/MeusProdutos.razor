@@ -1,0 +1,175 @@
+﻿@page "/fornecedor/produtos"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject FornecedorService FornecedorService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@attribute [Authorize(Roles = "Fornecedor")]
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3><i class="bi bi-box-seam me-2"></i>Meus Produtos</h3>
+
+        @* Botão para criar novo produto *@
+        <button class="btn btn-success" @onclick="IrParaCriar">
+            <i class="bi bi-plus-circle me-2"></i>Novo Produto
+        </button>
+    </div>
+
+    @if (carregando)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">A carregar produtos...</p>
+        </div>
+    }
+    else if (produtos == null || !produtos.Any())
+    {
+        <div class="alert alert-info text-center shadow-sm">
+            <i class="bi bi-info-circle me-2"></i>
+            Ainda não tens produtos à venda. Começa por adicionar um!
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm rounded bg-white">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40%">Produto</th>
+                        <th>Categoria</th>
+                        <th>Preço</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in produtos)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    @if (!string.IsNullOrEmpty(p.ImagemSrc))
+                                    {
+                                        <img src="@p.ImagemSrc" class="rounded me-2 border"
+                                             style="width: 40px; height: 40px; object-fit: cover;"
+                                             alt="@p.Nome" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-secondary rounded me-2 d-flex align-items-center justify-content-center text-white"
+                                             style="width: 40px; height: 40px;">
+                                            <i class="bi bi-image"></i>
+                                        </div>
+                                    }
+                                    <span class="fw-bold text-truncate" style="max-width: 200px;">
+                                        @p.Nome
+                                    </span>
+                                </div>
+                            </td>
+                            <td>@(p.CategoriaNome ?? "Sem Categoria")</td>
+                            <td class="fw-bold text-primary">@p.PrecoVenda.ToString("C")</td>
+                            <td>
+                                <span class="badge @(p.Stock > 0 ? "bg-success" : "bg-danger")">
+                                    @p.Stock un.
+                                </span>
+                            </td>
+                            <td>
+                                @if (p.Estado == "Pendente")
+                                {
+                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                }
+                                else if (p.Estado == "Activo")
+                                {
+                                    <span class="badge bg-success">À Venda</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@(p.Estado ?? "Indisponível")</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary me-1"
+                                        @onclick="() => EditarProduto(p.Id)"
+                                        title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => ApagarProduto(p.Id, p.Nome)"
+                                        title="Apagar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    // Inicializamos a lista para evitar avisos de null
+    private List<ProdutoDTO> produtos = new();
+    private bool carregando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarProdutos();
+    }
+
+    private async Task CarregarProdutos()
+    {
+        try
+        {
+            carregando = true;
+            // Verifica se o serviço devolve null e usa uma lista vazia nesse caso
+            produtos = await FornecedorService.GetMeusProdutos() ?? new List<ProdutoDTO>();
+        }
+        catch (Exception)
+        {
+            // Em caso de erro, apenas inicializa a lista vazia para não quebrar a UI
+            produtos = new List<ProdutoDTO>();
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private void IrParaCriar()
+    {
+        Nav.NavigateTo("fornecedor/produtos/criar");
+    }
+
+    private void EditarProduto(int id)
+    {
+        Nav.NavigateTo($"fornecedor/produtos/editar/{id}");
+    }
+
+    private async Task ApagarProduto(int id, string nome)
+    {
+        // CORREÇÃO PRINCIPAL: Usamos JS.InvokeAsync em vez de Application.Current
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", $"Tem a certeza que deseja apagar o produto '{nome}'?");
+
+        if (confirmado)
+        {
+            bool sucesso = await FornecedorService.ApagarProduto(id);
+            if (sucesso)
+            {
+                // Recarrega a lista após apagar
+                await CarregarProdutos();
+
+                // Opcional: Mostrar feedback simples
+                // await JS.InvokeVoidAsync("alert", "Produto apagado com sucesso.");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Erro ao apagar. Verifique se o produto já tem vendas associadas.");
+            }
+        }
+    }
+}

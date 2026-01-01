@@ -18,46 +18,67 @@
         <div class="@NavMenuCssClass navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav align-items-center">
 
+                @* 1. HOME (Visível para todos) *@
                 <li class="nav-item">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Home</NavLink>
                 </li>
 
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="colecao">
-                        <i class="bi bi-collection me-1"></i> A Nossa Coleção
-                    </NavLink>
-                </li>
+                @* 2. LÓGICA DE VISIBILIDADE 
+                   Se for Fornecedor: Vê Ferramentas de Gestão.
+                   Se NÃO for Fornecedor (Cliente/Anónimo): Vê Loja e Coleção.
+                *@
+                <AuthorizeView Roles="Fornecedor">
+                    <Authorized>
+                        @* --- APENAS FORNECEDORES --- *@
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="fornecedor/produtos">
+                                <i class="bi bi-boxes me-1"></i> Meus Produtos
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="fornecedor/vendas">
+                                <i class="bi bi-graph-up-arrow me-1"></i> Minhas Vendas
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        @* --- APENAS CLIENTES OU VISITANTES --- *@
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="colecao">
+                                <i class="bi bi-collection me-1"></i> A Nossa Coleção
+                            </NavLink>
+                        </li>
 
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="loja">
-                        <i class="bi bi-shop me-1"></i> Loja
-                    </NavLink>
-                </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="loja">
+                                <i class="bi bi-shop me-1"></i> Loja
+                            </NavLink>
+                        </li>
 
-                @* --- CARRINHO --- *@
-                <li class="nav-item me-3">
-                    <NavLink class="nav-link position-relative d-flex align-items-center" href="carrinho">
-                        <img src="_content/RCLImages/images/cart.png"
-                             alt="Carrinho"
-                             width="24"
-                             style="filter: invert(1) brightness(2);" />
+                        @* O Carrinho também só aparece para quem NÃO é fornecedor *@
+                        <li class="nav-item me-3">
+                            <NavLink class="nav-link position-relative d-flex align-items-center" href="carrinho">
+                                <img src="_content/RCLImages/images/cart.png"
+                                     alt="Carrinho"
+                                     width="24"
+                                     style="filter: invert(1) brightness(2);" />
 
-                        @if (contagemCarrinho > 0)
-                        {
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; margin-top: 5px; margin-left: -10px;">
-                                @contagemCarrinho
-                            </span>
-                        }
-                    </NavLink>
-                </li>
+                                @if (contagemCarrinho > 0)
+                                {
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                          style="font-size: 0.6rem; margin-top: 5px; margin-left: -10px;">
+                                        @contagemCarrinho
+                                    </span>
+                                }
+                            </NavLink>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
 
-                @* --- ZONA DE UTILIZADOR (Lógica 100% C#) --- *@
+                @* 3. ZONA DE UTILIZADOR (Dropdown Limpa) *@
                 <AuthorizeView>
                     <Authorized>
                         <li class="nav-item dropdown position-relative">
-                            @* Ao clicar, chamamos ToggleUserMenu que inverte o booleano. 
-                                @onclick:preventDefault evita que a página salte para o topo.
-                            *@
                             <a class="nav-link dropdown-toggle text-white fw-bold d-flex align-items-center"
                                href="#"
                                @onclick="ToggleUserMenu"
@@ -66,27 +87,28 @@
                                 <span>Olá, @context.User.Identity?.Name</span>
                             </a>
 
-                            @* A classe 'show' é adicionada se expandirMenuUtilizador for true *@
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-2 @(expandirMenuUtilizador ? "show" : "")"
                                 style="position: absolute; right: 0; left: auto;">
 
-                                @* Link Perfil *@
+                                @* Item 1: Minha Conta (Para todos) *@
                                 <li>
                                     <NavLink class="dropdown-item" href="perfil" @onclick="FecharMenus">
                                         <i class="bi bi-person me-2"></i>Minha Conta
                                     </NavLink>
                                 </li>
 
-                                @* Link Encomendas *@
-                                <li>
-                                    <NavLink class="dropdown-item" href="encomendas" @onclick="FecharMenus">
-                                        <i class="bi bi-box-seam me-2"></i>Minhas Encomendas
-                                    </NavLink>
-                                </li>
+                                @* Item 2: Minhas Encomendas (APENAS se for Cliente) *@
+                                <AuthorizeView Roles="Cliente" Context="clienteContext">
+                                    <li>
+                                        <NavLink class="dropdown-item" href="encomendas" @onclick="FecharMenus">
+                                            <i class="bi bi-box-seam me-2"></i>Minhas Encomendas
+                                        </NavLink>
+                                    </li>
+                                </AuthorizeView>
 
                                 <li><hr class="dropdown-divider"></li>
 
-                                @* Botão Sair *@
+                                @* Item 3: Sair *@
                                 <li>
                                     <button class="dropdown-item text-danger fw-bold" @onclick="Logout">
                                         <i class="bi bi-box-arrow-right me-2"></i>Sair
@@ -129,7 +151,7 @@
     /* Animação suave para o menu */
     .dropdown-menu.show {
         animation: fadeIn 0.3s;
-        display: block; /* Garante que aparece */
+        display: block;
     }
 
     @@keyframes fadeIn {
@@ -147,23 +169,14 @@
 
 @code {
     private bool collapseNavMenu = true;
-    private bool expandirMenuUtilizador = false; // Variável nova para controlar o Dropdown
+    private bool expandirMenuUtilizador = false;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
     private int contagemCarrinho = 0;
 
-    private void ToggleNavMenu()
-    {
-        collapseNavMenu = !collapseNavMenu;
-    }
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+    private void ToggleUserMenu() => expandirMenuUtilizador = !expandirMenuUtilizador;
 
-    // Método para abrir/fechar o Dropdown do Utilizador
-    private void ToggleUserMenu()
-    {
-        expandirMenuUtilizador = !expandirMenuUtilizador;
-    }
-
-    // Fecha os menus quando se clica num link
     private void FecharMenus()
     {
         expandirMenuUtilizador = false;
