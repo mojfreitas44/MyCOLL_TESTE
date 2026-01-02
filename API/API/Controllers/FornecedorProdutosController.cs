@@ -43,21 +43,11 @@ namespace API.Controllers
                 Id = p.Id,
                 Nome = p.Nome,
                 Descricao = p.Descricao,
-
-                // --- CORREÇÃO 1: Preço ---
-                // Agora mostramos o PrecoBase (o que tu definiste) e não o PrecoVenda (que tem a margem da loja)
                 PrecoVenda = p.PrecoBase,
-
-                // --- CORREÇÃO 2: Stock ---
-                // Faltava esta linha, por isso aparecia sempre 0
                 Stock = p.Stock,
-
                 Condicao = p.Condicao,
-
-                // --- CORREÇÃO 3: Estado ---
-                // Faltava mapear o estado explicitamente para o campo 'Estado' do DTO
                 Estado = p.Estado,
-
+                ParaVenda = p.ParaVenda,
                 CategoriaId = p.CategoriaId,
                 CategoriaNome = p.Categoria?.Nome,
                 FornecedorNome = !string.IsNullOrEmpty(p.Fornecedor?.Nome) ?

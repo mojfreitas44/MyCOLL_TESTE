@@ -40,6 +40,7 @@
                     <tr>
                         <th style="width: 40%">Produto</th>
                         <th>Categoria</th>
+                        <th>Tipo</th>
                         <th>Preço</th>
                         <th>Stock</th>
                         <th>Estado</th>
@@ -50,6 +51,7 @@
                     @foreach (var p in produtos)
                     {
                         <tr>
+                            @* 1. Imagem e Nome *@
                             <td>
                                 <div class="d-flex align-items-center">
                                     @if (!string.IsNullOrEmpty(p.ImagemSrc))
@@ -70,13 +72,37 @@
                                     </span>
                                 </div>
                             </td>
+
+                            @* 2. Categoria *@
                             <td>@(p.CategoriaNome ?? "Sem Categoria")</td>
+
+                            @* 3. NOVA COLUNA: TIPO (Venda ou Coleção) *@
+                            <td>
+                                @if (p.ParaVenda)
+                                {
+                                    <span class="badge rounded-pill bg-info text-dark">
+                                        <i class="bi bi-currency-euro me-1"></i>Venda
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill bg-secondary">
+                                        <i class="bi bi-collection me-1"></i>Coleção
+                                    </span>
+                                }
+                            </td>
+
+                            @* 4. Preço *@
                             <td class="fw-bold text-primary">@p.PrecoVenda.ToString("C")</td>
+
+                            @* 5. Stock *@
                             <td>
                                 <span class="badge @(p.Stock > 0 ? "bg-success" : "bg-danger")">
                                     @p.Stock un.
                                 </span>
                             </td>
+
+                            @* 6. Estado *@
                             <td>
                                 @if (p.Estado == "Pendente")
                                 {
@@ -91,15 +117,15 @@
                                     <span class="badge bg-secondary">@(p.Estado ?? "Indisponível")</span>
                                 }
                             </td>
+
+                            @* 7. Ações *@
                             <td class="text-end">
-                                @* Botão Editar com Texto *@
                                 <button class="btn btn-sm btn-outline-primary me-1"
                                         @onclick="() => EditarProduto(p.Id)"
                                         title="Editar">
                                     <i class="bi bi-pencil me-1"></i>Editar
                                 </button>
 
-                                @* Botão Apagar com Texto *@
                                 <button class="btn btn-sm btn-outline-danger"
                                         @onclick="() => ApagarProduto(p.Id, p.Nome)"
                                         title="Apagar">
