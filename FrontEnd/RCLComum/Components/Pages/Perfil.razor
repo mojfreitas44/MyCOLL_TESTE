@@ -1,0 +1,194 @@
+﻿@page "/perfil"
+@using Microsoft.AspNetCore.Authorization
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h3 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>O Meu Perfil</h3>
+                </div>
+                <div class="card-body p-4">
+
+                    @if (isLoading)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">A carregar...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (loadError)
+                    {
+                        @* ALTERAÇÃO 1: Mostrar o erro detalhado no ecrã *@
+                        <div class="alert alert-danger">
+                            <strong>Ocorreu um erro ao carregar os dados:</strong>
+                            <br />
+                            <code>@debugErro</code>
+                            <br /><br />
+                            <small>Se o erro for 401, tenta fazer Logout e Login novamente.</small>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (!string.IsNullOrEmpty(mensagemSucesso))
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                @mensagemSucesso
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(mensagemErro))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                @mensagemErro
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        <EditForm Model="@perfilModel" OnValidSubmit="GuardarAlteracoes">
+                            <DataAnnotationsValidator />
+
+                            <h5 class="text-primary mb-3 border-bottom pb-2">Dados Pessoais</h5>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nome</label>
+                                    <InputText class="form-control" @bind-Value="perfilModel.Nome" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apelido</label>
+                                    <InputText class="form-control" @bind-Value="perfilModel.Apelido" />
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">NIF</label>
+                                    <InputNumber class="form-control" @bind-Value="perfilModel.NIF" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Telemóvel</label>
+                                    <InputText class="form-control" @bind-Value="perfilModel.Telemovel" />
+                                </div>
+                            </div>
+
+                            <h5 class="text-primary mt-4 mb-3 border-bottom pb-2">Morada</h5>
+
+                            <div class="mb-3">
+                                <label class="form-label">Rua</label>
+                                <InputText class="form-control" @bind-Value="perfilModel.Morada.Rua" />
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Código Postal</label>
+                                    <InputText class="form-control" @bind-Value="perfilModel.Morada.CodigoPostal" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Localidade</label>
+                                    <InputText class="form-control" @bind-Value="perfilModel.Morada.Localidade" />
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Cidade</label>
+                                    <InputText class="form-control" @bind-Value="perfilModel.Morada.Cidade" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">País</label>
+                                    <InputText class="form-control" @bind-Value="perfilModel.Morada.Pais" />
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-save me-2"></i>Guardar Alterações
+                                </button>
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private EditarPerfilModel perfilModel = new EditarPerfilModel();
+    private bool isLoading = true;
+    private bool loadError = false;
+    private string mensagemSucesso = "";
+    private string mensagemErro = "";
+
+    // Variável para guardar o erro técnico
+    private string debugErro = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarDados();
+    }
+
+    private async Task CarregarDados()
+    {
+        isLoading = true;
+        loadError = false;
+        debugErro = "";
+
+        // ALTERAÇÃO 2: Recebe a tupla (dados, mensagemErro) do AuthService modificado
+        var (dadosUser, erroCapturado) = await AuthService.ObterPerfil();
+
+        if (dadosUser != null)
+        {
+            // Mapeamento: O GET retorna dados planos, o PUT (EditarPerfilModel) exige morada aninhada
+            perfilModel = new EditarPerfilModel
+            {
+                Nome = dadosUser.Nome,
+                Apelido = dadosUser.Apelido,
+                NIF = dadosUser.NIF,
+                Telemovel = dadosUser.Telemovel,
+                Morada = new MoradaDTO
+                {
+                    Rua = dadosUser.Rua,
+                    Localidade = dadosUser.Localidade,
+                    CodigoPostal = dadosUser.CodigoPostal,
+                    Cidade = dadosUser.Cidade,
+                    Pais = dadosUser.Pais
+                }
+            };
+        }
+        else
+        {
+            loadError = true;
+            debugErro = erroCapturado; // Guarda o erro para exibir no HTML
+        }
+
+        isLoading = false;
+    }
+
+    private async Task GuardarAlteracoes()
+    {
+        mensagemSucesso = "";
+        mensagemErro = "";
+
+        // O AtualizarPerfil mantém-se igual (retorna bool)
+        var sucesso = await AuthService.AtualizarPerfil(perfilModel);
+
+        if (sucesso)
+        {
+            mensagemSucesso = "Perfil atualizado com sucesso!";
+            await CarregarDados();
+        }
+        else
+        {
+            mensagemErro = "Ocorreu um erro ao atualizar o perfil. Verifique os dados.";
+        }
+    }
+}

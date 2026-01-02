@@ -14,7 +14,7 @@ namespace RCLAPI.DTO
 
     public class LoginResponse
     {
-        // Mapeia exatamente o JSON que a tua API devolve
+
         [JsonPropertyName("accesstoken")]
         public string AccessToken { get; set; } = string.Empty;
 
@@ -27,8 +27,13 @@ namespace RCLAPI.DTO
         [JsonPropertyName("role")]
         public string Role { get; set; } = string.Empty;
 
-        // Campos auxiliares para o frontend (não vêm da API)
+        [JsonPropertyName("estado")]
+        public string Estado { get; set; } = string.Empty; 
+
+        [JsonIgnore]
         public bool Sucesso { get; set; } = true;
+
+        [JsonIgnore]
         public string MensagemErro { get; set; } = string.Empty;
     }
 }

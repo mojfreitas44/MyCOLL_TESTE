@@ -1,6 +1,8 @@
 ﻿using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using RCLAPI.DTO;
+using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
@@ -11,11 +13,14 @@ namespace RCLAPI.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILocalStorageService _localStorage;
+        private readonly NavigationManager _navigationManager; // 1. Adicionado NavigationManager
 
-        public AuthService(HttpClient httpClient, ILocalStorageService localStorage)
+        // 2. Injetamos o NavigationManager no construtor
+        public AuthService(HttpClient httpClient, ILocalStorageService localStorage, NavigationManager navigationManager)
         {
             _httpClient = httpClient;
             _localStorage = localStorage;
+            _navigationManager = navigationManager;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -72,13 +77,8 @@ namespace RCLAPI.Services
                     }
                 }
 
-                // --- CORREÇÃO MENSAGEM DE ERRO ---
-                // Lê a mensagem exata da API (ex: "Conta Pendente", "Credenciais erradas")
                 var msgErro = await result.Content.ReadAsStringAsync();
-
-                // Limpa aspas extra se existirem
                 msgErro = msgErro.Trim('"');
-
                 if (string.IsNullOrEmpty(msgErro)) msgErro = "Login falhou.";
 
                 return new LoginResponse { Sucesso = false, MensagemErro = msgErro };
@@ -107,6 +107,73 @@ namespace RCLAPI.Services
             await _localStorage.RemoveItemAsync("authToken");
             _httpClient.DefaultRequestHeaders.Authorization = null;
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+
+            // Opcional: Redirecionar para home ou login após logout
+            // _navigationManager.NavigateTo("login"); 
+        }
+
+        // --- MÉTODO ATUALIZADO COM DETEÇÃO DE EXPIRAÇÃO ---
+        public async Task<(UserPerfilResponse? user, string error)> ObterPerfil()
+        {
+            try
+            {
+                var token = await _localStorage.GetItemAsync<string>("authToken");
+                if (string.IsNullOrEmpty(token))
+                    return (null, "Token não encontrado.");
+
+                _httpClient.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await _httpClient.GetAsync("api/Utilizadores/perfil");
+
+                // SE OCORRER ERRO 401 (UNAUTHORIZED)
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    // Token expirou ou é inválido.
+                    // 1. Forçar Logout
+                    await Logout();
+
+                    // 2. Enviar para a página de Login
+                    _navigationManager.NavigateTo("login");
+
+                    return (null, "Sessão expirada. A redirecionar para login...");
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var msg = await response.Content.ReadAsStringAsync();
+                    return (null, $"Erro API ({response.StatusCode}): {msg}");
+                }
+
+                var dados = await response.Content.ReadFromJsonAsync<UserPerfilResponse>();
+                return (dados, "");
+            }
+            catch (Exception ex)
+            {
+                return (null, $"Erro de conexão: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> AtualizarPerfil(EditarPerfilModel model)
+        {
+            try
+            {
+                var result = await _httpClient.PutAsJsonAsync("api/Utilizadores/perfil", model);
+
+                // Também podemos aplicar a lógica de auto-logout aqui
+                if (result.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    await Logout();
+                    _navigationManager.NavigateTo("login");
+                    return false;
+                }
+
+                return result.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
