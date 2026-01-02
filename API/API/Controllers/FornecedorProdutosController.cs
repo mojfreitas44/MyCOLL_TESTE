@@ -85,7 +85,7 @@ namespace API.Controllers
                 CategoriaId = dto.CategoriaId,
                 FornecedorId = userId,
                 Imagem = imagemBytes,
-                ParaVenda = true,
+                ParaVenda = dto.ParaVenda,
                 Estado = "Pendente"
             };
 
@@ -121,6 +121,7 @@ namespace API.Controllers
             produto.Stock = dto.Stock;
             produto.Condicao = dto.Condicao;
             produto.CategoriaId = dto.CategoriaId;
+            produto.ParaVenda = dto.ParaVenda;
 
             if (dto.RemoverImagem)
             {

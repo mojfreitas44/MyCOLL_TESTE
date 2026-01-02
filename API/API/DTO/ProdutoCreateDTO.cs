@@ -25,5 +25,6 @@ namespace API.DTO
         // A imagem vem como texto (Base64) da App e nós convertemos para bytes
         public string? ImagemBase64 { get; set; }
         public bool RemoverImagem { get; set; } = false;
+        public bool ParaVenda { get; set; } = true;
     }
 }

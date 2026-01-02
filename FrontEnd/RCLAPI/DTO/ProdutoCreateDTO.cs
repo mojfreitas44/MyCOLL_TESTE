@@ -22,6 +22,8 @@ namespace RCLAPI.DTO
         [Required(ErrorMessage = "A categoria é obrigatória")]
         public int CategoriaId { get; set; }
 
+        public bool ParaVenda { get; set; } = true;
+
         // Imagem em Base64 para envio
         public string? ImagemBase64 { get; set; }
         public bool RemoverImagem { get; set; } = false;
