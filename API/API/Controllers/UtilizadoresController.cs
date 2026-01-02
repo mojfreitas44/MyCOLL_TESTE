@@ -62,7 +62,7 @@ namespace API.Controllers
                 return StatusCode(StatusCodes.Status403Forbidden, "A sua conta não tem permissão para entrar na aplicação Frontend.");
 
             if (!role.Contains("Admin") && !estado.Equals("Ativo", StringComparison.OrdinalIgnoreCase))
-                return StatusCode(StatusCodes.Status403Forbidden, "A sua conta ainda não está ativa.");
+                return StatusCode(StatusCodes.Status403Forbidden, "Login proíbido. Aguarde que a administração autorize a sua conta.");
 
             // Configuração da Chave JWT
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:Key"]!));
