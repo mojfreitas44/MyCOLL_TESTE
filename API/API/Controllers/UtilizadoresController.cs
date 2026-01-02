@@ -193,6 +193,32 @@ namespace API.Controllers
 
             return BadRequest(result.Errors);
         }
+        [HttpPost("alterar-password")]
+        [Authorize]
+        public async Task<IActionResult> AlterarPassword([FromBody] AlterarPasswordModel model)
+        {
+            if (model.PasswordAtual == model.NovaPassword)
+                return BadRequest("A nova password deve ser diferente da atual.");
+            
+            if (model.NovaPassword != model.ConfirmarNovaPassword)
+                return BadRequest("A nova password e a confirmação não coincidem.");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null) return NotFound("Utilizador não encontrado.");
+
+            // Esta função do Identity trata de verificar a antiga e hashear a nova
+            var result = await _userManager.ChangePasswordAsync(user, model.PasswordAtual, model.NovaPassword);
+
+            if (!result.Succeeded)
+            {
+                // Retorna o primeiro erro (ex: "Password incorreta", "Password muito curta")
+                return BadRequest(result.Errors.FirstOrDefault()?.Description);
+            }
+
+            return Ok(new { Message = "Password alterada com sucesso!" });
+        }
     }
 
     // ==========================================================
@@ -236,5 +262,11 @@ namespace API.Controllers
         public string CodigoPostal { get; set; } = "";
         public string Cidade { get; set; } = "";
         public string Pais { get; set; } = "";
+    }
+    public class AlterarPasswordModel
+    {
+        public string PasswordAtual { get; set; } = "";
+        public string NovaPassword { get; set; } = "";
+        public string ConfirmarNovaPassword { get; set; } = "";
     }
 }

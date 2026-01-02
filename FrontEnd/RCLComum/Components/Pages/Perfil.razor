@@ -6,7 +6,7 @@
 @inject NavigationManager Navigation
 @attribute [Authorize]
 
-<div class="container mt-5">
+<div class="container mt-5 mb-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow border-0">
@@ -17,7 +17,7 @@
 
                     @if (isLoading)
                     {
-                        <div class="text-center">
+                        <div class="text-center py-5">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">A carregar...</span>
                             </div>
@@ -25,17 +25,17 @@
                     }
                     else if (loadError)
                     {
-                        @* ALTERAÇÃO 1: Mostrar o erro detalhado no ecrã *@
                         <div class="alert alert-danger">
                             <strong>Ocorreu um erro ao carregar os dados:</strong>
                             <br />
                             <code>@debugErro</code>
                             <br /><br />
-                            <small>Se o erro for 401, tenta fazer Logout e Login novamente.</small>
+                            <small>Se for erro 401, a página deverá redirecionar para o login automaticamente.</small>
                         </div>
                     }
                     else
                     {
+                        @* --- MENSAGENS DE FEEDBACK GERAIS --- *@
                         @if (!string.IsNullOrEmpty(mensagemSucesso))
                         {
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -52,6 +52,9 @@
                             </div>
                         }
 
+                        @* ======================================================================== *@
+                        @* 1. FORMULÁRIO DE DADOS PESSOAIS E MORADA *@
+                        @* ======================================================================== *@
                         <EditForm Model="@perfilModel" OnValidSubmit="GuardarAlteracoes">
                             <DataAnnotationsValidator />
 
@@ -110,10 +113,60 @@
 
                             <div class="d-grid gap-2 mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="bi bi-save me-2"></i>Guardar Alterações
+                                    <i class="bi bi-save me-2"></i>Guardar Dados Pessoais
                                 </button>
                             </div>
                         </EditForm>
+
+                        @* ======================================================================== *@
+                        @* 2. SECÇÃO DE SEGURANÇA *@
+                        @* ======================================================================== *@
+
+                        <hr class="my-5 border-2" />
+
+                        <div class="bg-light p-4 rounded-3 border">
+                            <h5 class="text-danger mb-3"><i class="bi bi-shield-lock me-2"></i>Segurança</h5>
+                            <p class="text-muted small">Aqui pode alterar a sua palavra-passe. Necessita da atual para confirmar a mudança.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label">Password Atual</label>
+                                <input type="password" class="form-control" @bind="passAtual" placeholder="Insira a password atual..." />
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nova Password</label>
+                                    <input type="password" class="form-control" @bind="passNova" placeholder="Mínimo 6 caracteres..." />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirmar Nova Password</label>
+                                    <input type="password" class="form-control" @bind="passConfirm" placeholder="Repita a nova password..." />
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    @if (!string.IsNullOrEmpty(msgPass))
+                                    {
+                                        <span class="@(isPassError ? "text-danger" : "text-success") fw-bold">
+                                            @if (!isPassError)
+                                            {
+                                                <i class="bi bi-check-circle me-1"></i>
+                                            }
+                                            else
+                                            {
+
+                                                <i class="bi bi-exclamation-circle me-1"></i>
+                                            }
+                                            @msgPass
+                                        </span>
+                                    }
+                                </div>
+                                <button class="btn btn-outline-danger" @onclick="MudarPassword">
+                                    Atualizar Password
+                                </button>
+                            </div>
+                        </div>
                     }
                 </div>
             </div>
@@ -122,14 +175,22 @@
 </div>
 
 @code {
+    // --- DADOS DO PERFIL ---
     private EditarPerfilModel perfilModel = new EditarPerfilModel();
     private bool isLoading = true;
     private bool loadError = false;
+    private string debugErro = "";
+
+    // Mensagens Perfil
     private string mensagemSucesso = "";
     private string mensagemErro = "";
 
-    // Variável para guardar o erro técnico
-    private string debugErro = "";
+    // --- DADOS DA PASSWORD ---
+    private string passAtual = "";
+    private string passNova = "";
+    private string passConfirm = "";
+    private string msgPass = "";
+    private bool isPassError = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,12 +203,10 @@
         loadError = false;
         debugErro = "";
 
-        // ALTERAÇÃO 2: Recebe a tupla (dados, mensagemErro) do AuthService modificado
         var (dadosUser, erroCapturado) = await AuthService.ObterPerfil();
 
         if (dadosUser != null)
         {
-            // Mapeamento: O GET retorna dados planos, o PUT (EditarPerfilModel) exige morada aninhada
             perfilModel = new EditarPerfilModel
             {
                 Nome = dadosUser.Nome,
@@ -167,7 +226,7 @@
         else
         {
             loadError = true;
-            debugErro = erroCapturado; // Guarda o erro para exibir no HTML
+            debugErro = erroCapturado;
         }
 
         isLoading = false;
@@ -178,7 +237,6 @@
         mensagemSucesso = "";
         mensagemErro = "";
 
-        // O AtualizarPerfil mantém-se igual (retorna bool)
         var sucesso = await AuthService.AtualizarPerfil(perfilModel);
 
         if (sucesso)
@@ -188,7 +246,52 @@
         }
         else
         {
-            mensagemErro = "Ocorreu um erro ao atualizar o perfil. Verifique os dados.";
+            mensagemErro = "Ocorreu um erro ao atualizar os dados pessoais.";
+        }
+    }
+
+    private async Task MudarPassword()
+    {
+        msgPass = "";
+        isPassError = false;
+
+        // 1. Validação: Campos Vazios
+        if (string.IsNullOrWhiteSpace(passAtual) || string.IsNullOrWhiteSpace(passNova))
+        {
+            isPassError = true;
+            msgPass = "Preencha a password atual e a nova.";
+            return;
+        }
+
+        // 2. Validação: Confirmar
+        if (passNova != passConfirm)
+        {
+            isPassError = true;
+            msgPass = "A confirmação da password não coincide.";
+            return;
+        }
+
+        // 3. NOVA VALIDAÇÃO: Igual à anterior
+        if (passAtual == passNova)
+        {
+            isPassError = true;
+            msgPass = "A nova password deve ser diferente da atual.";
+            return;
+        }
+
+        // Chama o serviço
+        var erroAPI = await AuthService.AlterarPassword(passAtual, passNova, passConfirm);
+
+        if (string.IsNullOrEmpty(erroAPI))
+        {
+            isPassError = false;
+            msgPass = "Palavra-passe alterada com sucesso!";
+            passAtual = passNova = passConfirm = "";
+        }
+        else
+        {
+            isPassError = true;
+            msgPass = "Erro: " + erroAPI.Trim('"');
         }
     }
 }

@@ -175,6 +175,15 @@ namespace RCLAPI.Services
                 return false;
             }
         }
+        public async Task<string> AlterarPassword(string passAtual, string passNova, string passConfirm)
+        {
+            var model = new { PasswordAtual = passAtual, NovaPassword = passNova, ConfirmarNovaPassword = passConfirm };
+            var result = await _httpClient.PostAsJsonAsync("api/Utilizadores/alterar-password", model);
+
+            if (result.IsSuccessStatusCode) return ""; // Sucesso (string vazia = sem erro)
+
+            return await result.Content.ReadAsStringAsync(); // Retorna a mensagem de erro do servidor
+        }
 
         private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
         {
