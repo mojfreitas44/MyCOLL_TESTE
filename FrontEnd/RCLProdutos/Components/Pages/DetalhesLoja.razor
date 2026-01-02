@@ -1,8 +1,10 @@
 ﻿@page "/loja/detalhes/{Id:int}"
 @using RCLAPI.DTO
 @using RCLAPI.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ProdutosCliente ProdutosService
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>@tituloPagina</PageTitle>
 
@@ -71,14 +73,20 @@
 
                         <div class="mt-auto">
                             <div class="d-grid gap-2">
-                                <button class="btn btn-success btn-lg rounded-pill shadow-sm" disabled="@(produto.Stock <= 0)" @onclick="AdicionarAoCarrinho">
-                                    @if (produto.Stock <= 0)
+                                <button class="btn btn-success btn-lg rounded-pill shadow-sm"
+                                        disabled="@(produto.Stock <= 0 || isFornecedor)"
+                                        @onclick="AdicionarAoCarrinho">
+
+                                    @if (isFornecedor)
+                                    {
+                                        <span><i class="bi bi-slash-circle me-2"></i>Adicionar ao Carrinho</span>
+                                    }
+                                    else if (produto.Stock <= 0)
                                     {
                                         <span>Esgotado</span>
                                     }
                                     else
                                     {
-
                                         <span><i class="bi bi-cart-plus-fill me-2"></i>Adicionar ao Carrinho</span>
                                     }
                                 </button>
@@ -101,8 +109,12 @@
     private bool isLoading = true;
     private string tituloPagina = "Detalhes do Produto";
 
+    private bool isFornecedor = false;
+
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        isFornecedor = authState.User.IsInRole("Fornecedor");
         try
         {
             produto = await ProdutosService.GetProduto(Id);

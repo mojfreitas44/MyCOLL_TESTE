@@ -124,7 +124,7 @@
         }
     </div>
 
-    @* --- SECÇÃO 3: ACESSO RÁPIDO ORIGINAL (INTOCADO) --- *@
+    @* --- SECÇÃO 3: ACESSO RÁPIDO ORIGINAL --- *@
     <div class="text-center mb-5">
         <h2 class="fw-bold text-dark">Acesso Rápido</h2>
         <div class="divider mx-auto bg-primary"></div>
@@ -136,15 +136,28 @@
             <div class="card h-100 border-0 shadow-sm custom-card text-center">
                 <div class="card-body p-4">
                     <div class="icon-box bg-light mx-auto mb-3 shadow-sm p-0 overflow-hidden border border-2 border-white">
+                        @* A IMAGEM É COMUM AOS DOIS *@
                         <img src="_content/RCLImages/images/Catalogo.jpg"
                              class="img-fluid"
                              style="width: 100%; height: 100%; object-fit: cover;"
                              alt="Catálogo" />
                     </div>
-                    <h4 class="card-title fw-bold">Loja Online</h4>
-                    <p class="card-text text-muted">Explora o catálogo de itens raros disponíveis para compra.</p>
 
-                    <a href="loja" class="stretched-link"></a>
+                    <AuthorizeView Roles="Fornecedor">
+                        <Authorized>
+                            @* --- VERSÃO FORNECEDOR: MEUS PRODUTOS --- *@
+                            <h4 class="card-title fw-bold">Meus Produtos</h4>
+                            <p class="card-text text-muted">Gere o teu inventário, adiciona novos itens ou atualiza preços.</p>
+                            <a href="fornecedor/produtos" class="stretched-link"></a>
+                        </Authorized>
+                        <NotAuthorized>
+                            @* --- VERSÃO CLIENTE: LOJA ONLINE --- *@
+                            <h4 class="card-title fw-bold">Loja Online</h4>
+                            <p class="card-text text-muted">Explora o catálogo de itens raros disponíveis para compra.</p>
+                            <a href="loja" class="stretched-link"></a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+
                 </div>
             </div>
         </div>
@@ -152,12 +165,29 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm custom-card text-center">
                 <div class="card-body p-4">
-                    <div class="icon-box bg-light text-success mx-auto mb-3 shadow-sm">
-                        <img src="_content/RCLImages/images/cart.png" width="50" alt="Carrinho" />
-                    </div>
-                    <h4 class="card-title fw-bold">Carrinho</h4>
-                    <p class="card-text text-muted">Vê as tuas compras pendentes e finaliza a encomenda.</p>
-                    <a href="carrinho" class="stretched-link"></a>
+
+                    @* Se for Fornecedor mostra Vendas, senão mostra Carrinho *@
+                    <AuthorizeView Roles="Fornecedor">
+                        <Authorized>
+                            @* --- VERSÃO FORNECEDOR: MINHAS VENDAS --- *@
+                            <div class="icon-box bg-light text-primary mx-auto mb-3 shadow-sm">
+                                <img src="_content/RCLImages/images/cart.png" width="50" alt="Carrinho" />
+                            </div>
+                            <h4 class="card-title fw-bold">Minhas Vendas</h4>
+                            <p class="card-text text-muted">Consulta os teus ganhos e histórico de vendas.</p>
+                            <a href="fornecedor/vendas" class="stretched-link"></a>
+                        </Authorized>
+                        <NotAuthorized>
+                            @* --- VERSÃO CLIENTE/VISITANTE: CARRINHO --- *@
+                            <div class="icon-box bg-light text-success mx-auto mb-3 shadow-sm">
+                                <img src="_content/RCLImages/images/cart.png" width="50" alt="Carrinho" />
+                            </div>
+                            <h4 class="card-title fw-bold">Carrinho</h4>
+                            <p class="card-text text-muted">Vê as tuas compras pendentes e finaliza a encomenda.</p>
+                            <a href="carrinho" class="stretched-link"></a>
+                        </NotAuthorized>
+                    </AuthorizeView>
+
                 </div>
             </div>
         </div>
