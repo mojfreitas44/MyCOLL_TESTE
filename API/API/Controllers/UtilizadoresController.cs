@@ -204,6 +204,8 @@ namespace API.Controllers
                 return BadRequest("A nova password e a confirmação não coincidem.");
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("Sessão inválida.");
             var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null) return NotFound("Utilizador não encontrado.");
