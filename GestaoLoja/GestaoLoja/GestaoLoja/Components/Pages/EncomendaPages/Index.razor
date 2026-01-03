@@ -38,6 +38,7 @@
                 <option value="Enviado">Enviado</option>
                 <option value="Entregue">Entregue (A fechar)</option>
                 <option value="Concluido">Concluído</option>
+                <option value="Cancelada">Cancelada</option> @* ADICIONADO *@
             </select>
         </div>
         <div class="col-md-3">
@@ -91,6 +92,11 @@ else
                         @if (enc.Estado == "Pendente")
                         {
                             <button class="btn btn-sm btn-success ms-1" @onclick='() => MudarEstado(enc, "Pago")'>Marcar Pago</button>
+
+                            @* --- NOVO BOTÃO RECUSAR --- *@
+                            <button class="btn btn-sm btn-outline-danger ms-1" title="Cancelar e Repor Stock" @onclick='() => RecusarEncomenda(enc.Id)'>
+                                <i class="bi bi-x-circle"></i> Recusar
+                            </button>
                         }
                         else if (enc.Estado == "Pago")
                         {
@@ -98,12 +104,10 @@ else
                         }
                         else if (enc.Estado == "Enviado")
                         {
-                            @* AQUI: Não mostra botão, apenas aviso *@
                             <span class="ms-2 small text-muted fst-italic"><i class="bi bi-hourglass-split"></i> Aguarda Cliente</span>
                         }
                         else if (enc.Estado == "Entregue")
                         {
-                            @* AQUI: Só aparece quando o cliente já confirmou *@
                             <button class="btn btn-sm btn-primary ms-1" @onclick='() => MudarEstado(enc, "Concluido")'>Concluir</button>
                         }
                     </td>
@@ -212,7 +216,43 @@ else
         {
             encomendaDb.Estado = novoEstado;
             await context.SaveChangesAsync();
-            await CarregarDados(); // Recarregar tabela
+            await CarregarDados();
+        }
+    }
+
+    // --- NOVA FUNCIONALIDADE: RECUSAR ENCOMENDA ---
+    private async Task RecusarEncomenda(int id)
+    {
+        // 1. Confirmação Visual
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", "Tem a certeza que deseja RECUSAR esta encomenda? O stock será reposto.");
+        if (!confirmado) return;
+
+        using var context = DbFactory.CreateDbContext();
+
+        // Importante: Incluir Itens para poder aceder ao Produto e repor stock
+        var encomendaDb = await context.Encomendas
+            .Include(e => e.Itens)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        // Verificações de segurança
+        if (encomendaDb != null && encomendaDb.Estado == "Pendente")
+        {
+            // 2. Repor Stock
+            foreach (var item in encomendaDb.Itens)
+            {
+                var produto = await context.Produtos.FindAsync(item.ProdutoId);
+                if (produto != null)
+                {
+                    produto.Stock += item.Quantidade;
+                }
+            }
+
+            // 3. Atualizar Estado
+            encomendaDb.Estado = "Cancelada";
+            await context.SaveChangesAsync();
+
+            // 4. Recarregar lista
+            await CarregarDados();
         }
     }
 
@@ -223,6 +263,7 @@ else
         "Enviado" => "bg-info text-dark",
         "Entregue" => "bg-primary",
         "Concluido" => "bg-success",
+        "Cancelada" => "bg-secondary", 
         _ => "bg-secondary"
     };
 }

@@ -5,10 +5,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Folder Include="Auth\" />
-  </ItemGroup>
 	
   <ItemGroup>
 	  <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />

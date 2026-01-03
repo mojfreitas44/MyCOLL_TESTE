@@ -66,10 +66,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Services\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\RCLAPI\RCLAPI.csproj" />
       <ProjectReference Include="..\RCLCompras\RCLCompras.csproj" />
       <ProjectReference Include="..\RCLComum\RCLComum.csproj" />
