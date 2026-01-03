@@ -59,6 +59,9 @@ namespace ClienteMAUI
             // 9. Registar o Serviço de Fornecedores
             builder.Services.AddScoped<FornecedorService>();
 
+            // 10. Registar o Serviço de Favoritos
+            builder.Services.AddScoped<FavoritosService>();
+
             // --- FIM DAS CONFIGURAÇÕES ---
 
             return builder.Build();

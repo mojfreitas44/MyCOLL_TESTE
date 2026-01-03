@@ -93,9 +93,20 @@
                                 @* Item 1: Minha Conta (Para todos) *@
                                 <li>
                                     <NavLink class="dropdown-item" href="perfil" @onclick="FecharMenus">
-                                        <i class="bi bi-person me-2"></i>Minha Conta
+                                        <i class="bi bi-person me-2"></i>Perfil
                                     </NavLink>
                                 </li>
+
+                                @* --- INSERÇÃO: MEUS FAVORITOS (Apenas Cliente) --- *@
+                                @if (context.User.IsInRole("Cliente"))
+                                {
+                                    <li>
+                                        <NavLink class="dropdown-item" href="favoritos" @onclick="FecharMenus">
+                                            <i class="bi bi-heart-fill me-2 text-danger"></i>Favoritos
+                                        </NavLink>
+                                    </li>
+                                }
+                                @* ------------------------------------------------ *@
 
                                 @* Item 2: Minhas Encomendas (APENAS se for Cliente) *@
                                 <AuthorizeView Roles="Cliente" Context="clienteContext">

@@ -6,6 +6,7 @@
 @inject CategoriasCliente CategoriasService
 @inject NavigationManager Nav
 @inject CarrinhoService CarrinhoService
+@inject FavoritosService FavoritosService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Loja Online</PageTitle>
@@ -20,7 +21,6 @@
 
         <div class="col-md-8">
             <div class="d-flex gap-2 justify-content-md-end">
-                @* Dropdown Categorias *@
                 <select class="form-select w-auto rounded-pill border-success text-success fw-bold"
                         @onchange="FiltrarPorCategoria">
                     <option value="">Todas as Categorias</option>
@@ -33,7 +33,6 @@
                     }
                 </select>
 
-                @* Barra de Pesquisa *@
                 <div class="input-group w-auto">
                     <input type="text" class="form-control rounded-start-pill border-end-0"
                            placeholder="Pesquisar..."
@@ -69,8 +68,29 @@
             @foreach (var produto in produtosPaginados)
             {
                 <div class="col-md-6 col-lg-4 col-xl-3">
-                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover position-relative">
+
                         <div class="position-relative bg-light" style="height: 250px;">
+
+                            @* --- BOTÃO FAVORITOS --- *@
+                            @if (!isFornecedor)
+                            {
+                                <button class="btn btn-light rounded-circle shadow-sm position-absolute top-0 start-0 m-2 p-0 d-flex align-items-center justify-content-center"
+                                        style="z-index: 10; width: 40px; height: 40px;"
+                                        @onclick="() => ToggleFavorito(produto.Id)">
+
+                                    @if (listaIdsFavoritos.Contains(produto.Id))
+                                    {
+                                        <img src="_content/RCLImages/images/heartfilltransp.png" width="24" height="24" />
+                                    }
+                                    else
+                                    {
+                                        <img src="_content/RCLImages/images/heart.png" width="24" height="24" />
+                                    }
+                                </button>
+                            }
+
+                            @* Imagem *@
                             @if (!string.IsNullOrEmpty(produto.ImagemSrc))
                             {
                                 <img src="@produto.ImagemSrc" class="w-100 h-100 object-fit-cover" alt="@produto.Nome" />
@@ -79,6 +99,7 @@
                             {
                                 <div class="d-flex align-items-center justify-content-center h-100 text-muted"><i class="bi bi-bag fs-1"></i></div>
                             }
+
                             <span class="position-absolute top-0 end-0 badge bg-success m-2 shadow-sm">Venda</span>
                         </div>
 
@@ -113,13 +134,13 @@
 
                     @for (int i = 1; i <= totalPaginas; i++)
                     {
-                        var p = i; // Copiar variável para a lambda
-                                   <li class="page-item @(paginaAtual == p ? "active" : "")">
-                                       <button class="page-link @(paginaAtual == p ? "bg-success border-success" : "text-success")"
-                                               @onclick="() => MudarPagina(p)">
-                                           @p
-                                       </button>
-                                   </li>
+                        var p = i;
+                        <li class="page-item @(paginaAtual == p ? "active" : "")">
+                            <button class="page-link @(paginaAtual == p ? "bg-success border-success" : "text-success")"
+                                    @onclick="() => MudarPagina(p)">
+                                @p
+                            </button>
+                        </li>
                     }
 
                     <li class="page-item @(paginaAtual == totalPaginas ? "disabled" : "")">
@@ -132,18 +153,16 @@
 </div>
 
 @code {
-    // Dados
-    private List<ProdutoDTO>? todosProdutosFiltrados; // Lista completa vinda da API (já filtrada por texto/cat)
-    private List<ProdutoDTO>? produtosPaginados;      // Lista reduzida para a página atual
+    private List<ProdutoDTO>? todosProdutosFiltrados;
+    private List<ProdutoDTO>? produtosPaginados;
     private List<CategoriaDTO>? categorias;
+    private HashSet<int> listaIdsFavoritos = new HashSet<int>();
 
-    // Filtros
     private string pesquisaTexto = "";
     private int? categoriaIdSelecionada = null;
 
-    // Paginação
     private int paginaAtual = 1;
-    private int itensPorPagina = 8; // Default 8
+    private int itensPorPagina = 8;
     private int totalPaginas = 1;
 
     private bool isFornecedor = false;
@@ -151,18 +170,51 @@
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        isFornecedor = authState.User.IsInRole("Fornecedor");
+        var user = authState.User;
+        isFornecedor = user.IsInRole("Fornecedor");
+
+        // --- CORREÇÃO AQUI: user.Identity pode ser nulo ---
+        // Adicionei o '?' e '== true' para garantir segurança
+        if (user.Identity?.IsAuthenticated == true && user.IsInRole("Cliente"))
+        {
+            try
+            {
+                var favs = await FavoritosService.ObterFavoritos();
+                listaIdsFavoritos = favs.Select(f => f.Id).ToHashSet();
+            }
+            catch { }
+        }
 
         await CarregarDados();
     }
 
     private async Task CarregarDados()
     {
-        // 1. Carregar Categorias para o filtro
         try { categorias = await CategoriasService.GetCategorias(); } catch { }
-
-        // 2. Carregar Produtos iniciais
         await AplicarFiltros();
+    }
+
+    private async Task ToggleFavorito(int id)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("login");
+            return;
+        }
+
+        if (listaIdsFavoritos.Contains(id))
+        {
+            if (await FavoritosService.RemoverFavorito(id))
+                listaIdsFavoritos.Remove(id);
+        }
+        else
+        {
+            if (await FavoritosService.AdicionarFavorito(id))
+                listaIdsFavoritos.Add(id);
+        }
     }
 
     private async Task AtualizarPesquisa(KeyboardEventArgs e)
@@ -192,23 +244,17 @@
 
     private async Task AplicarFiltros()
     {
-        // Reinicia a paginação
         paginaAtual = 1;
 
-        // Vai à API buscar produtos com os filtros de Texto e Categoria
-        // Nota: A API devolve tudo o que corresponde ao filtro. A paginação visual fazemos aqui no cliente.
-        // Se a base de dados fosse gigante, faríamos paginação no servidor (Skip/Take na API).
         var resultado = await ProdutosService.GetProdutos(pesquisaTexto, categoriaIdSelecionada);
-
-        // Aplica o filtro de "ParaVenda" aqui, pois a API pode devolver coleção também se não filtrarmos lá
         todosProdutosFiltrados = resultado.Where(p => p.ParaVenda == true).ToList();
 
         CalcularPaginacao();
     }
+
     private async Task AdicionarAoCarrinho(ProdutoDTO produto)
     {
         await CarrinhoService.AdicionarAoCarrinho(produto);
-        // Opcional: Aqui podias adicionar um Toast/Aviso visual "Adicionado!"
     }
 
     private void CalcularPaginacao()
@@ -229,9 +275,6 @@
         {
             paginaAtual = novaPagina;
             CalcularPaginacao();
-            // Scroll para o topo (opcional)
         }
     }
-
-    private void IrParaCarrinho() { Nav.NavigateTo("carrinho"); }
 }

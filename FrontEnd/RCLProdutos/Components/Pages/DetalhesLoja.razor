@@ -5,6 +5,7 @@
 @inject ProdutosCliente ProdutosService
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
+@inject FavoritosService FavoritosService
 
 <PageTitle>@tituloPagina</PageTitle>
 
@@ -40,7 +41,7 @@
                             <p class="mt-2">Imagem indisponível</p>
                         </div>
                     }
-                    @* Badge apenas de Venda (já que estamos na Loja) *@
+                    @* Badge apenas de Venda *@
                     <span class="position-absolute top-0 end-0 badge bg-success m-3 shadow">Venda</span>
                 </div>
 
@@ -61,7 +62,6 @@
                         <div class="mb-4 p-3 bg-light rounded-3 border-start border-4 border-success">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="bi bi-box-seam me-2 text-secondary"></i>
-                                @* Agora a cor vai funcionar porque o Stock já vem da API *@
                                 <span class="fw-bold @produto.DisponibilidadeCor">@produto.DisponibilidadeTexto</span>
                             </div>
                             <small class="text-muted d-block"><strong>Fornecedor:</strong> @produto.FornecedorNome</small>
@@ -72,8 +72,11 @@
                         <p class="card-text text-secondary mb-4">@(string.IsNullOrEmpty(produto.Descricao) ? "Sem descrição." : produto.Descricao)</p>
 
                         <div class="mt-auto">
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-success btn-lg rounded-pill shadow-sm"
+                            @* --- ZONA DE AÇÃO (CARRINHO + FAVORITOS) --- *@
+                            <div class="d-flex align-items-center gap-3">
+
+                                @* Botão Carrinho *@
+                                <button class="btn btn-success btn-lg rounded-pill shadow-sm flex-grow-1"
                                         disabled="@(produto.Stock <= 0 || isFornecedor)"
                                         @onclick="AdicionarAoCarrinho">
 
@@ -90,7 +93,27 @@
                                         <span><i class="bi bi-cart-plus-fill me-2"></i>Adicionar ao Carrinho</span>
                                     }
                                 </button>
+
+                                @* --- BOTÃO FAVORITO GRANDE --- *@
+                                @if (!isFornecedor)
+                                {
+                                    <button class="btn btn-light rounded-circle shadow-sm p-0 d-flex align-items-center justify-content-center"
+                                            style="width: 54px; height: 54px; border: 1px solid #e0e0e0;"
+                                            title="@(isFavorito ? "Remover dos favoritos" : "Adicionar aos favoritos")"
+                                            @onclick="ToggleFavorito">
+
+                                        @if (isFavorito)
+                                        {
+                                            <img src="_content/RCLImages/images/heartfilltransp.png" width="30" height="30" />
+                                        }
+                                        else
+                                        {
+                                            <img src="_content/RCLImages/images/heart.png" width="30" height="30" />
+                                        }
+                                    </button>
+                                }
                             </div>
+
                             @if (produto.Stock > 0 && produto.Stock <= 5)
                             {
                                 <div class="text-center mt-2"><small class="text-warning fw-bold">Corre! Só restam @produto.Stock unidades.</small></div>
@@ -105,26 +128,64 @@
 
 @code {
     [Parameter] public int Id { get; set; }
+
     private ProdutoDTO? produto;
     private bool isLoading = true;
     private string tituloPagina = "Detalhes do Produto";
 
     private bool isFornecedor = false;
+    private bool isFavorito = false;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        isFornecedor = authState.User.IsInRole("Fornecedor");
+        var user = authState.User;
+        isFornecedor = user.IsInRole("Fornecedor");
+
         try
         {
             produto = await ProdutosService.GetProduto(Id);
             if (produto != null)
             {
                 tituloPagina = produto.Nome;
+
+                // Se for cliente logado, verifica favorito
+                if (user.Identity?.IsAuthenticated == true && user.IsInRole("Cliente"))
+                {
+                    try
+                    {
+                        var favs = await FavoritosService.ObterFavoritos();
+                        isFavorito = favs.Any(f => f.Id == Id);
+                    }
+                    catch { }
+                }
             }
         }
         catch { }
         finally { isLoading = false; }
+    }
+
+    private async Task ToggleFavorito()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // 1. Redirecionar Anónimos
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("login");
+            return;
+        }
+
+        // 2. Lógica de Toggle
+        if (isFavorito)
+        {
+            if (await FavoritosService.RemoverFavorito(Id)) isFavorito = false;
+        }
+        else
+        {
+            if (await FavoritosService.AdicionarFavorito(Id)) isFavorito = true;
+        }
     }
 
     private void VoltarLoja() { Nav.NavigateTo("loja"); }

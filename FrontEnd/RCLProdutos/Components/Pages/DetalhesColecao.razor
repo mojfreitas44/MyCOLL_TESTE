@@ -1,8 +1,11 @@
 ﻿@page "/colecao/detalhes/{Id:int}"
 @using RCLAPI.DTO
 @using RCLAPI.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ProdutosCliente ProdutosService
 @inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject FavoritosService FavoritosService
 
 <PageTitle>@tituloPagina</PageTitle>
 
@@ -27,18 +30,38 @@
             <div class="row g-0">
                 @* Coluna da Imagem *@
                 <div class="col-md-6 bg-light d-flex align-items-center justify-content-center position-relative" style="min-height: 400px;">
+
+                    @* --- BOTÃO FAVORITOS (Canto Esquerdo) --- *@
+                    @if (!isFornecedor)
+                    {
+                        <button class="btn btn-light rounded-circle shadow-sm position-absolute top-0 start-0 m-3 p-0 d-flex align-items-center justify-content-center"
+                                style="z-index: 10; width: 50px; height: 50px;"
+                                title="@(isFavorito ? "Remover dos favoritos" : "Adicionar aos favoritos")"
+                                @onclick="ToggleFavorito">
+
+                            @if (isFavorito)
+                            {
+                                <img src="_content/RCLImages/images/heartfilltransp.png" width="30" height="30" />
+                            }
+                            else
+                            {
+                                <img src="_content/RCLImages/images/heart.png" width="30" height="30" />
+                            }
+                        </button>
+                    }
+
                     @if (!string.IsNullOrEmpty(produto.ImagemSrc))
                     {
                         <img src="@produto.ImagemSrc" class="img-fluid object-fit-contain p-3" style="max-height: 500px;" />
                     }
                     else
                     {
-                        @* --- ALTERAÇÃO AQUI: Estilo igual ao da Loja --- *@
                         <div class="text-muted text-center">
                             <i class="bi bi-image" style="font-size: 5rem;"></i>
                             <p class="mt-2">Imagem indisponível</p>
                         </div>
                     }
+                    @* Badge Coleção (Canto Direito) *@
                     <span class="position-absolute top-0 end-0 badge bg-primary m-3">Coleção</span>
                 </div>
 
@@ -69,12 +92,20 @@
 
 @code {
     [Parameter] public int Id { get; set; }
+
     private ProdutoDTO? produto;
     private bool isLoading = true;
     private string tituloPagina = "Detalhes da Coleção";
 
+    private bool isFornecedor = false;
+    private bool isFavorito = false;
+
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isFornecedor = user.IsInRole("Fornecedor");
+
         try
         {
             produto = await ProdutosService.GetProduto(Id);
@@ -87,10 +118,44 @@
                 {
                     Nav.NavigateTo($"/loja/detalhes/{Id}");
                 }
+
+                // Se for cliente logado, carrega estado favorito
+                if (user.Identity?.IsAuthenticated == true && user.IsInRole("Cliente"))
+                {
+                    try
+                    {
+                        var favs = await FavoritosService.ObterFavoritos();
+                        isFavorito = favs.Any(f => f.Id == Id);
+                    }
+                    catch { }
+                }
             }
         }
         catch { }
         finally { isLoading = false; }
+    }
+
+    private async Task ToggleFavorito()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // 1. Redirecionar Anónimos
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("login");
+            return;
+        }
+
+        // 2. Lógica de Toggle
+        if (isFavorito)
+        {
+            if (await FavoritosService.RemoverFavorito(Id)) isFavorito = false;
+        }
+        else
+        {
+            if (await FavoritosService.AdicionarFavorito(Id)) isFavorito = true;
+        }
     }
 
     private void VoltarColecao() => Nav.NavigateTo("colecao");

@@ -1,0 +1,114 @@
+﻿@page "/favoritos"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Cliente")]
+@inject FavoritosService FavoritosService
+@inject CarrinhoService CarrinhoService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="container mt-4 mb-5">
+    <div class="d-flex align-items-center mb-4">
+        <h2 class="mb-0 text-danger fw-bold"><i class="bi bi-heart-fill me-2"></i>Meus Favoritos</h2>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-danger" role="status"></div>
+        </div>
+    }
+    else if (favoritos.Count == 0)
+    {
+        <div class="text-center py-5">
+            <img src="_content/RCLImages/images/heart.png" style="opacity: 0.3; width: 100px;" />
+            <h4 class="mt-3 text-muted">Ainda não tens favoritos.</h4>
+            <p>Vai à loja e clica no coração para guardar o que mais gostas!</p>
+            <a href="loja" class="btn btn-outline-danger mt-2 rounded-pill px-4">Ir para a Loja</a>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            @foreach (var prod in favoritos)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 position-relative rounded-4 overflow-hidden">
+
+                        @* Botão de Remover (X) no canto *@
+                        <button class="btn btn-light rounded-circle shadow-sm position-absolute top-0 end-0 m-2 p-0 d-flex align-items-center justify-content-center"
+                                style="width: 35px; height: 35px; z-index: 10;"
+                                @onclick="() => Remover(prod)" title="Remover dos favoritos">
+                            <img src="_content/RCLImages/images/heartfilltransp.png" width="22" height="22" />
+                        </button>
+
+                        @* Imagem *@
+                        <div class="bg-light d-flex align-items-center justify-content-center position-relative" style="height: 200px;">
+                            @if (!string.IsNullOrEmpty(prod.ImagemSrc))
+                            {
+                                <img src="@prod.ImagemSrc" class="w-100 h-100 object-fit-cover" />
+                            }
+                            else
+                            {
+                                <i class="bi bi-image text-muted fs-1"></i>
+                            }
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-truncate fw-bold">@prod.Nome</h5>
+                            <p class="card-text fw-bold text-success">@prod.PrecoVenda.ToString("C")</p>
+
+                            <div class="mt-auto d-grid gap-2">
+                                <button class="btn btn-success rounded-pill btn-sm"
+                                        disabled="@(prod.Stock <= 0)"
+                                        @onclick="() => AdicionarAoCarrinho(prod)">
+                                    <i class="bi bi-cart-plus me-1"></i>Adicionar
+                                </button>
+                                <a href="loja/detalhes/@prod.Id" class="btn btn-outline-secondary rounded-pill btn-sm">
+                                    Ver Detalhes
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProdutoDTO> favoritos = new List<ProdutoDTO>();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarFavoritos();
+    }
+
+    private async Task CarregarFavoritos()
+    {
+        isLoading = true;
+        favoritos = await FavoritosService.ObterFavoritos();
+        isLoading = false;
+    }
+
+    private async Task Remover(ProdutoDTO prod)
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"Remover '{prod.Nome}' dos favoritos?");
+        if (confirm)
+        {
+            var sucesso = await FavoritosService.RemoverFavorito(prod.Id);
+            if (sucesso)
+            {
+                favoritos.Remove(prod);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task AdicionarAoCarrinho(ProdutoDTO prod)
+    {
+        await CarrinhoService.AdicionarAoCarrinho(prod);
+    }
+}

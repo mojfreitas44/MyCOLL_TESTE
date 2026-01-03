@@ -1,8 +1,11 @@
 ﻿@page "/colecao"
 @using RCLAPI.DTO
 @using RCLAPI.Services
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ProdutosCliente ProdutosService
 @inject CategoriasCliente CategoriasService
+@inject FavoritosService FavoritosService
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 
 <PageTitle>A Nossa Coleção</PageTitle>
@@ -62,8 +65,29 @@
             @foreach (var produto in produtosPaginados)
             {
                 <div class="col-md-6 col-lg-4 col-xl-3">
-                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden card-hover position-relative">
+
                         <div class="position-relative bg-light" style="height: 250px;">
+
+                            @* --- BOTÃO FAVORITOS --- *@
+                            @if (!isFornecedor)
+                            {
+                                <button class="btn btn-light rounded-circle shadow-sm position-absolute top-0 start-0 m-2 p-0 d-flex align-items-center justify-content-center"
+                                        style="z-index: 10; width: 40px; height: 40px;"
+                                        @onclick="() => ToggleFavorito(produto.Id)">
+
+                                    @if (listaIdsFavoritos.Contains(produto.Id))
+                                    {
+                                        <img src="_content/RCLImages/images/heartfilltransp.png" width="24" height="24" />
+                                    }
+                                    else
+                                    {
+                                        <img src="_content/RCLImages/images/heart.png" width="24" height="24" />
+                                    }
+                                </button>
+                            }
+
+                            @* Imagem *@
                             @if (!string.IsNullOrEmpty(produto.ImagemSrc))
                             {
                                 <img src="@produto.ImagemSrc" class="w-100 h-100 object-fit-cover" alt="@produto.Nome" />
@@ -72,6 +96,7 @@
                             {
                                 <div class="d-flex align-items-center justify-content-center h-100 text-muted"><i class="bi bi-image fs-1"></i></div>
                             }
+
                             <span class="position-absolute top-0 end-0 badge bg-primary text-white m-2 shadow-sm">Coleção</span>
                         </div>
 
@@ -121,16 +146,34 @@
     private List<ProdutoDTO>? todosProdutosFiltrados;
     private List<ProdutoDTO>? produtosPaginados;
     private List<CategoriaDTO>? categorias;
+    private HashSet<int> listaIdsFavoritos = new HashSet<int>();
 
     private string pesquisaTexto = "";
     private int? categoriaIdSelecionada = null;
 
     private int paginaAtual = 1;
-    private int itensPorPagina = 8; // Default 8
+    private int itensPorPagina = 8;
     private int totalPaginas = 1;
+
+    private bool isFornecedor = false;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isFornecedor = user.IsInRole("Fornecedor");
+
+        // --- CORREÇÃO AQUI ---
+        if (user.Identity?.IsAuthenticated == true && user.IsInRole("Cliente"))
+        {
+            try
+            {
+                var favs = await FavoritosService.ObterFavoritos();
+                listaIdsFavoritos = favs.Select(f => f.Id).ToHashSet();
+            }
+            catch { }
+        }
+
         await CarregarDados();
     }
 
@@ -138,6 +181,29 @@
     {
         try { categorias = await CategoriasService.GetCategorias(); } catch { }
         await AplicarFiltros();
+    }
+
+    private async Task ToggleFavorito(int id)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("login");
+            return;
+        }
+
+        if (listaIdsFavoritos.Contains(id))
+        {
+            if (await FavoritosService.RemoverFavorito(id))
+                listaIdsFavoritos.Remove(id);
+        }
+        else
+        {
+            if (await FavoritosService.AdicionarFavorito(id))
+                listaIdsFavoritos.Add(id);
+        }
     }
 
     private async Task AtualizarPesquisa(KeyboardEventArgs e)
@@ -170,7 +236,6 @@
         paginaAtual = 1;
 
         var resultado = await ProdutosService.GetProdutos(pesquisaTexto, categoriaIdSelecionada);
-        // Filtro específico da Coleção (ParaVenda = false)
         todosProdutosFiltrados = resultado.Where(p => p.ParaVenda == false).ToList();
 
         CalcularPaginacao();
