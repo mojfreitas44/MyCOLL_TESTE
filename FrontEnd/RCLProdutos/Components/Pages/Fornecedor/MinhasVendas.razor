@@ -24,7 +24,6 @@
                     <select class="form-select form-select-sm" @bind="filtroEstado" @onclick="AplicarFiltros">
                         <option value="">-- Todos os Estados --</option>
                         <option value="Pendente">Pendente</option>
-                        @* ATUALIZADO COM PONTINHOS *@
                         <option value="Pago">A Preparar Expedição...</option>
                         <option value="Enviado">Enviado</option>
                         <option value="Entregue">Entregue</option>
@@ -132,7 +131,6 @@
                             </td>
 
                             <td class="text-center pe-4">
-                                @* ATUALIZADO COM PONTINHOS *@
                                 <span class="badge rounded-pill px-3 py-2 @GetStatusColor(v.EstadoEncomenda)">
                                     @(v.EstadoEncomenda == "Pago" ? "A Preparar Expedição..." : v.EstadoEncomenda)
                                 </span>
@@ -211,27 +209,54 @@
 
     private void AoDigitarDataInicio(ChangeEventArgs e)
     {
-        filtroDataInicioTexto = AplicarMascara(e.Value?.ToString() ?? "");
+        filtroDataInicioTexto = AplicarMascaraInteligente(e.Value?.ToString() ?? "");
     }
 
     private void AoDigitarDataFim(ChangeEventArgs e)
     {
-        filtroDataFimTexto = AplicarMascara(e.Value?.ToString() ?? "");
+        filtroDataFimTexto = AplicarMascaraInteligente(e.Value?.ToString() ?? "");
     }
 
-    private string AplicarMascara(string valor)
+    // --- MÁSCARA INTELIGENTE ---
+    private string AplicarMascaraInteligente(string valor)
     {
-        string numeros = new string(valor.Where(char.IsDigit).ToArray());
+        string nums = new string(valor.Where(char.IsDigit).ToArray());
+        if (nums.Length > 8) nums = nums.Substring(0, 8);
 
-        if (numeros.Length > 8)
-            numeros = numeros.Substring(0, 8);
+        // Valida Dia
+        if (nums.Length >= 2)
+        {
+            int dia = int.Parse(nums.Substring(0, 2));
+            if (dia == 0) nums = "01" + nums.Substring(2);
+            if (dia > 31) nums = "31" + nums.Substring(2);
+        }
+        // Valida Mês e Consistência
+        if (nums.Length >= 4)
+        {
+            int mes = int.Parse(nums.Substring(2, 2));
+            if (mes == 0) nums = nums.Substring(0, 2) + "01" + nums.Substring(4);
+            if (mes > 12) nums = nums.Substring(0, 2) + "12" + nums.Substring(4);
 
-        if (numeros.Length > 4)
-            return $"{numeros.Substring(0, 2)}/{numeros.Substring(2, 2)}/{numeros.Substring(4)}";
-        if (numeros.Length > 2)
-            return $"{numeros.Substring(0, 2)}/{numeros.Substring(2)}";
+            int dia = int.Parse(nums.Substring(0, 2));
+            mes = int.Parse(nums.Substring(2, 2));
+            int maxDias = DateTime.DaysInMonth(2024, mes);
+            if (dia > maxDias)
+            {
+                nums = maxDias.ToString("D2") + mes.ToString("D2") + nums.Substring(4);
+            }
+        }
+        // Valida Ano (Force 20xx)
+        if (nums.Length >= 5)
+        {
+            if (nums[4] != '2') nums = nums.Substring(0, 4) + "2" + nums.Substring(5);
+        }
 
-        return numeros;
+        if (nums.Length > 4)
+            return $"{nums.Substring(0, 2)}/{nums.Substring(2, 2)}/{nums.Substring(4)}";
+        if (nums.Length > 2)
+            return $"{nums.Substring(0, 2)}/{nums.Substring(2)}";
+
+        return nums;
     }
 
     private void LimparFiltros()

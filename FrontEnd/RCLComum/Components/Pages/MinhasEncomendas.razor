@@ -31,7 +31,6 @@
                     <select class="form-select form-select-sm" @bind="filtroEstado" @onclick="AplicarFiltros">
                         <option value="">-- Todos os Estados --</option>
                         <option value="Pendente">Pendente</option>
-                        @* ATUALIZADO COM PONTINHOS *@
                         <option value="Pago">A Preparar Expedição...</option>
                         <option value="Enviado">Enviado</option>
                         <option value="Entregue">Entregue</option>
@@ -40,6 +39,7 @@
                     </select>
                 </div>
 
+                @* DATA INÍCIO *@
                 <div class="col-md-3">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">De</span>
@@ -51,6 +51,7 @@
                     </div>
                 </div>
 
+                @* DATA FIM *@
                 <div class="col-md-3">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">Até</span>
@@ -121,7 +122,6 @@
                             <td>@enc.Data.ToString("dd/MM/yyyy HH:mm")</td>
                             <td class="fw-bold">@enc.ValorTotal.ToString("C2")</td>
                             <td>
-                                @* ATUALIZADO COM PONTINHOS *@
                                 <span class="badge @GetStatusColor(enc.Estado)">
                                     @(enc.Estado == "Pago" ? "A Preparar Expedição..." : enc.Estado)
                                 </span>
@@ -215,28 +215,68 @@
 
     private void AoDigitarDataInicio(ChangeEventArgs e)
     {
-        filtroDataInicioTexto = AplicarMascara(e.Value?.ToString() ?? "");
+        filtroDataInicioTexto = AplicarMascaraInteligente(e.Value?.ToString() ?? "");
     }
 
     private void AoDigitarDataFim(ChangeEventArgs e)
     {
-        filtroDataFimTexto = AplicarMascara(e.Value?.ToString() ?? "");
+        filtroDataFimTexto = AplicarMascaraInteligente(e.Value?.ToString() ?? "");
     }
 
-    private string AplicarMascara(string valor)
+    // --- NOVA MÁSCARA INTELIGENTE ---
+    private string AplicarMascaraInteligente(string valor)
     {
-        string numeros = new string(valor.Where(char.IsDigit).ToArray());
+        // 1. Apenas números
+        string nums = new string(valor.Where(char.IsDigit).ToArray());
+        if (nums.Length > 8) nums = nums.Substring(0, 8);
 
-        if (numeros.Length > 8)
-            numeros = numeros.Substring(0, 8);
+        // 2. Validações de Calendário
+        if (nums.Length >= 2) // Validar Dia
+        {
+            int dia = int.Parse(nums.Substring(0, 2));
+            if (dia == 0) nums = "01" + nums.Substring(2);
+            if (dia > 31) nums = "31" + nums.Substring(2);
+        }
 
-        if (numeros.Length > 4)
-            return $"{numeros.Substring(0, 2)}/{numeros.Substring(2, 2)}/{numeros.Substring(4)}";
-        if (numeros.Length > 2)
-            return $"{numeros.Substring(0, 2)}/{numeros.Substring(2)}";
+        if (nums.Length >= 4) // Validar Mês e Consistência
+        {
+            int mes = int.Parse(nums.Substring(2, 2));
+            if (mes == 0) nums = nums.Substring(0, 2) + "01" + nums.Substring(4);
+            if (mes > 12) nums = nums.Substring(0, 2) + "12" + nums.Substring(4);
 
-        return numeros;
+            // Re-validar dia com base no mês (ex: 31/02 -> 29/02)
+            // Usamos 2024 (ano bissexto) como base para permitir 29/02 durante a digitação
+            int dia = int.Parse(nums.Substring(0, 2));
+            mes = int.Parse(nums.Substring(2, 2)); // Refresh no valor
+            int maxDias = DateTime.DaysInMonth(2024, mes);
+
+            if (dia > maxDias)
+            {
+                nums = maxDias.ToString("D2") + mes.ToString("D2") + nums.Substring(4);
+            }
+        }
+
+        // 3. Validação Básica de Ano (Impede começar com 0 ou 1, forçando 20xx)
+        if (nums.Length >= 5)
+        {
+            // Se o 5º digito (1º do ano) não for '2', remove-o ou força 2
+            char primeiroDigitoAno = nums[4];
+            if (primeiroDigitoAno != '2')
+            {
+                // Opção: forçar '2' para ser amigável
+                nums = nums.Substring(0, 4) + "2" + nums.Substring(5);
+            }
+        }
+
+        // 4. Formatação Visual (Barras)
+        if (nums.Length > 4)
+            return $"{nums.Substring(0, 2)}/{nums.Substring(2, 2)}/{nums.Substring(4)}";
+        if (nums.Length > 2)
+            return $"{nums.Substring(0, 2)}/{nums.Substring(2)}";
+
+        return nums;
     }
+    // --------------------------------
 
     private void LimparFiltros()
     {
@@ -267,7 +307,7 @@
         return estado switch
         {
             "Pendente" => "bg-warning text-dark",
-            "Pago" => "bg-info text-dark", 
+            "Pago" => "bg-info text-dark",
             "Enviado" => "bg-primary",
             "Entregue" => "bg-success",
             "Concluido" => "bg-dark text-white",
