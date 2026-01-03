@@ -28,16 +28,26 @@
             <div class="col-md-4">
                 <div class="card bg-success text-white shadow-sm">
                     <div class="card-body text-center">
-                        <h6 class="card-title">Total Ganho</h6>
-                        <h3>@vendas.Sum(v => v.TotalGanho).ToString("C")</h3>
+                        <h6 class="card-title">Total Ganho (Real)</h6>
+                        @* CORREÇÃO: Filtra apenas as NÃO canceladas *@
+                        <h3>@vendas.Where(v => v.EstadoEncomenda != "Cancelada").Sum(v => v.TotalGanho).ToString("C")</h3>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card bg-primary text-white shadow-sm">
                     <div class="card-body text-center">
-                        <h6 class="card-title">Total Itens Vendidos</h6>
-                        <h3>@vendas.Sum(v => v.Quantidade)</h3>
+                        <h6 class="card-title">Itens Vendidos (Efetivos)</h6>
+                        @* CORREÇÃO: Filtra apenas as NÃO canceladas *@
+                        <h3>@vendas.Where(v => v.EstadoEncomenda != "Cancelada").Sum(v => v.Quantidade)</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-danger text-white shadow-sm">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Vendas Canceladas</h6>
+                        <h3>@vendas.Count(v => v.EstadoEncomenda == "Cancelada")</h3>
                     </div>
                 </div>
             </div>
@@ -58,14 +68,27 @@
                 <tbody>
                     @foreach (var v in vendas)
                     {
-                        <tr>
+                        <tr class="@(v.EstadoEncomenda == "Cancelada" ? "table-danger text-muted" : "")">
                             <td>@v.DataVenda.ToShortDateString()</td>
                             <td class="fw-bold">@v.NomeProduto</td>
                             <td>@v.Quantidade</td>
                             <td>@v.PrecoUnitario.ToString("C")</td>
-                            <td class="text-success fw-bold">@v.TotalGanho.ToString("C")</td>
+                            <td class="@(v.EstadoEncomenda == "Cancelada" ? "text-decoration-line-through" : "text-success fw-bold")">
+                                @v.TotalGanho.ToString("C")
+                            </td>
                             <td>
-                                <span class="badge bg-secondary">@v.EstadoEncomenda</span>
+                                @if (v.EstadoEncomenda == "Cancelada")
+                                {
+                                    <span class="badge bg-danger">Cancelada</span>
+                                }
+                                else if (v.EstadoEncomenda == "Entregue")
+                                {
+                                    <span class="badge bg-success">Entregue</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">@v.EstadoEncomenda</span>
+                                }
                             </td>
                         </tr>
                     }

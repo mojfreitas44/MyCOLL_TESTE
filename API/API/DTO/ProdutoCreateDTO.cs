@@ -19,10 +19,8 @@ namespace API.DTO
         [Required]
         public string Condicao { get; set; } = "Usado"; // Novo ou Usado
 
-        [Required(ErrorMessage = "A categoria é obrigatória")]
+        [Range(0, int.MaxValue, ErrorMessage = "A categoria é obrigatória")]
         public int CategoriaId { get; set; }
-
-        // A imagem vem como texto (Base64) da App e nós convertemos para bytes
         public string? ImagemBase64 { get; set; }
         public bool RemoverImagem { get; set; } = false;
         public bool ParaVenda { get; set; } = true;

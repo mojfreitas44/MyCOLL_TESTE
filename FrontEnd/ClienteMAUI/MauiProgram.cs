@@ -2,7 +2,8 @@
 using RCLAPI;
 using RCLAPI.Services;
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components.Authorization; 
+using Microsoft.AspNetCore.Components.Authorization;
+using ClienteMAUI.Services;
 
 namespace ClienteMAUI
 {
@@ -61,6 +62,9 @@ namespace ClienteMAUI
 
             // 10. Registar o Serviço de Favoritos
             builder.Services.AddScoped<FavoritosService>();
+
+            // 11. Registar o Serviço de Upload de Fotos
+            builder.Services.AddSingleton<PhotoPicker, MauiPhotoPicker>();
 
             // --- FIM DAS CONFIGURAÇÕES ---
 
