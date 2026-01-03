@@ -71,5 +71,15 @@ namespace RCLAPI.Services
                 return false;
             }
         }
+        public async Task<EncomendaDTO?> GetEncomendaPorId(int id)
+        {
+            var response = await _httpClient.GetAsync($"api/Encomendas/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<EncomendaDTO>();
+            }
+            return null;
+        }
     }
 }

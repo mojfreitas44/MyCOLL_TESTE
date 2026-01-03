@@ -1,0 +1,172 @@
+﻿@page "/encomenda/{Id:int}"
+@using RCLAPI.DTO
+@using RCLAPI.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@inject EncomendasCliente EncomendasSvc
+@inject NavigationManager Nav
+@attribute [Authorize]
+
+<div class="container py-5">
+
+    @* --- Cabeçalho e Botão Voltar --- *@
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="encomendas" class="btn btn-outline-secondary btn-sm mb-2">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+            <h2 class="fw-bold mb-0">Detalhes da Encomenda <span class="text-primary">#@Id</span></h2>
+        </div>
+    </div>
+
+    @if (carregando)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">A carregar detalhes...</p>
+        </div>
+    }
+    else if (encomenda == null)
+    {
+        <div class="alert alert-warning shadow-sm">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Não foi possível encontrar esta encomenda.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @* --- COLUNA ESQUERDA: Informações Gerais --- *@
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-light fw-bold">
+                        <i class="bi bi-info-circle me-2"></i>Resumo
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <span class="text-muted">Data:</span>
+                                <span class="fw-bold">@encomenda.Data.ToString("dd/MM/yyyy HH:mm")</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <span class="text-muted">Estado:</span>
+                                @* Lógica visual: Pago -> A Preparar... *@
+                                <span class="badge @GetStatusColor(encomenda.Estado)">
+                                    @(encomenda.Estado == "Pago" ? "A Preparar Expedição..." : encomenda.Estado)
+                                </span>
+                            </li>
+                            <li class="list-group-item px-0">
+                                <span class="text-muted d-block small mb-1">Pagamento:</span>
+                                <span class="fw-bold"><i class="bi bi-credit-card me-1"></i>@encomenda.MetodoPagamento</span>
+                            </li>
+                            <li class="list-group-item px-0">
+                                <span class="text-muted d-block small mb-1">Morada de Envio:</span>
+                                <span class="fw-bold"><i class="bi bi-geo-alt me-1"></i>@encomenda.MoradaEnvio</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 mt-2 bg-light rounded p-2">
+                                <span class="text-muted fw-bold">Total:</span>
+                                <span class="fw-bold text-success fs-5">@encomenda.ValorTotal.ToString("C2")</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            @* --- COLUNA DIREITA: Itens da Encomenda --- *@
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white fw-bold">
+                        <i class="bi bi-box-seam me-2"></i>Produtos
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light text-secondary">
+                                    <tr>
+                                        <th class="ps-4">Produto</th>
+                                        <th class="text-center">Qtd</th>
+                                        <th class="text-end">Preço Unit.</th>
+                                        <th class="text-end pe-4">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (encomenda.Itens != null && encomenda.Itens.Any())
+                                    {
+                                        foreach (var item in encomenda.Itens)
+                                        {
+                                            <tr>
+                                                <td class="ps-4">
+                                                    @* Ajustado para usar 'item.Nome' conforme o teu DTO *@
+                                                    <div class="fw-bold text-dark">@item.Nome</div>
+                                                    <small class="text-muted">Ref: @item.ProdutoId</small>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-light text-dark border">x @item.Quantidade</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    @* Ajustado para usar 'item.Preco' conforme o teu DTO *@
+                                                    @item.Preco.ToString("C2")
+                                                </td>
+                                                <td class="text-end pe-4 fw-bold">
+                                                    @((item.Preco * item.Quantidade).ToString("C2"))
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">
+                                                Detalhes dos itens não disponíveis.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private EncomendaDTO? encomenda;
+    private bool carregando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Busca a encomenda específica pelo ID
+            // Certifica-te que tens este método no EncomendasCliente.cs
+            encomenda = await EncomendasSvc.GetEncomendaPorId(Id);
+        }
+        catch
+        {
+            encomenda = null;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private string GetStatusColor(string estado)
+    {
+        return estado switch
+        {
+            "Pendente" => "bg-warning text-dark",
+            "Pago" => "bg-info text-dark", // Cor do 'A Preparar Expedição...'
+            "Enviado" => "bg-primary",
+            "Entregue" => "bg-success",
+            "Concluido" => "bg-dark text-white",
+            "Cancelada" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

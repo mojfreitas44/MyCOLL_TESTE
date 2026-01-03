@@ -2,105 +2,162 @@
 @using RCLAPI.DTO
 @using RCLAPI.Services
 @using Microsoft.AspNetCore.Authorization
+@using System.Globalization
 @inject FornecedorService FornecedorService
 @attribute [Authorize(Roles = "Fornecedor")]
 
-<div class="container mt-4">
-    <h3 class="mb-4"><i class="bi bi-cash-coin me-2"></i>Histórico de Vendas</h3>
+<div class="container mt-4 mb-5">
+    <h3 class="fw-bold mb-4 text-dark"><i class="bi bi-cash-coin me-2"></i>Histórico de Vendas</h3>
 
+    @* --- FILTROS --- *@
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body">
+            <h6 class="card-title fw-bold text-muted mb-3"><i class="bi bi-funnel me-1"></i>Filtrar Vendas</h6>
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    <input type="text" class="form-control form-control-sm" placeholder="Nome do Produto..."
+                           @bind="filtroProduto" @bind:event="oninput" @onkeyup="AplicarFiltros" />
+                </div>
+
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" @bind="filtroEstado" @onclick="AplicarFiltros">
+                        <option value="">-- Todos os Estados --</option>
+                        <option value="Pendente">Pendente</option>
+                        @* ATUALIZADO COM PONTINHOS *@
+                        <option value="Pago">A Preparar Expedição...</option>
+                        <option value="Enviado">Enviado</option>
+                        <option value="Entregue">Entregue</option>
+                        <option value="Concluido">Concluido</option>
+                        <option value="Cancelada">Cancelada</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">De</span>
+                        <input type="text" class="form-control"
+                               placeholder="dd/mm/aaaa"
+                               maxlength="10"
+                               value="@filtroDataInicioTexto"
+                               @oninput="AoDigitarDataInicio" />
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">Até</span>
+                        <input type="text" class="form-control"
+                               placeholder="dd/mm/aaaa"
+                               maxlength="10"
+                               value="@filtroDataFimTexto"
+                               @oninput="AoDigitarDataFim" />
+                    </div>
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary btn-sm" @onclick="AplicarFiltros">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12 text-end">
+                    <button class="btn btn-link btn-sm text-decoration-none text-muted p-0" @onclick="LimparFiltros">
+                        Limpar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* --- RESULTADOS --- *@
     @if (carregando)
     {
         <div class="text-center mt-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">A carregar o histórico...</p>
+            <p class="mt-2 text-muted">A carregar o histórico...</p>
         </div>
     }
-    else if (vendas == null || !vendas.Any())
+    else if (vendasFiltradas == null || !vendasFiltradas.Any())
     {
-        <div class="alert alert-info text-center shadow-sm">
+        <div class="alert alert-info rounded-4 border-0 shadow-sm text-center">
             <i class="bi bi-info-circle me-2"></i>
-            Ainda não tens vendas registadas.
+            @if (vendas != null && vendas.Any())
+            {
+                <span>Nenhuma venda encontrada com estes critérios.</span>
+            }
+            else
+            {
+                <span>Ainda não tens vendas registadas.</span>
+            }
         </div>
     }
     else
     {
-        <div class="row mb-3">
+        <div class="row mb-4">
             <div class="col-md-4">
-                <div class="card bg-success text-white shadow-sm">
+                <div class="card bg-success text-white shadow-sm border-0">
                     <div class="card-body text-center">
-                        <h6 class="card-title">Total Ganho (Real)</h6>
-                        @* CORREÇÃO: Filtra apenas as NÃO canceladas *@
-                        <h3>@vendas.Where(v => v.EstadoEncomenda != "Cancelada").Sum(v => v.TotalGanho).ToString("C")</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-primary text-white shadow-sm">
-                    <div class="card-body text-center">
-                        <h6 class="card-title">Itens Vendidos (Efetivos)</h6>
-                        @* CORREÇÃO: Filtra apenas as NÃO canceladas *@
-                        <h3>@vendas.Where(v => v.EstadoEncomenda != "Cancelada").Sum(v => v.Quantidade)</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card bg-danger text-white shadow-sm">
-                    <div class="card-body text-center">
-                        <h6 class="card-title">Vendas Canceladas</h6>
-                        <h3>@vendas.Count(v => v.EstadoEncomenda == "Cancelada")</h3>
+                        <h6 class="card-title text-uppercase small opacity-75">Total Ganho (Real)</h6>
+                        <h2 class="fw-bold mb-0">@vendasFiltradas.Where(v => v.EstadoEncomenda != "Cancelada").Sum(v => v.TotalGanho).ToString("C")</h2>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="table-responsive shadow-sm rounded bg-white">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-hover align-middle bg-white mb-0">
+                <thead class="bg-light text-secondary">
                     <tr>
-                        <th>Data</th>
-                        <th>Produto</th>
-                        <th>Qtd</th>
-                        <th>Preço Un.</th>
-                        <th>Total</th>
-                        <th>Estado Encomenda</th>
+                        <th class="py-3 ps-4">Data</th>
+                        <th class="py-3">Produto</th>
+                        <th class="py-3 text-center">Qtd</th>
+                        <th class="py-3 text-end">Valor</th>
+                        <th class="py-3 text-center pe-4">Estado</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var v in vendas)
+                    @foreach (var v in vendasFiltradas)
                     {
-                        <tr class="@(v.EstadoEncomenda == "Cancelada" ? "table-danger text-muted" : "")">
-                            <td>@v.DataVenda.ToShortDateString()</td>
-                            <td class="fw-bold">@v.NomeProduto</td>
-                            <td>@v.Quantidade</td>
-                            <td>@v.PrecoUnitario.ToString("C")</td>
-                            <td class="@(v.EstadoEncomenda == "Cancelada" ? "text-decoration-line-through" : "text-success fw-bold")">
+                        <tr>
+                            <td class="ps-4 text-muted small">@v.DataVenda.ToString("dd/MM/yyyy HH:mm")</td>
+
+                            <td class="fw-bold text-primary">@v.NomeProduto</td>
+
+                            <td class="text-center"><span class="badge bg-light text-dark border">@v.Quantidade</span></td>
+
+                            <td class="text-end fw-bold @(v.EstadoEncomenda == "Cancelada" ? "text-decoration-line-through text-muted" : "text-success")">
                                 @v.TotalGanho.ToString("C")
                             </td>
-                            <td>
-                                @if (v.EstadoEncomenda == "Cancelada")
-                                {
-                                    <span class="badge bg-danger">Cancelada</span>
-                                }
-                                else if (v.EstadoEncomenda == "Entregue")
-                                {
-                                    <span class="badge bg-success">Entregue</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-warning text-dark">@v.EstadoEncomenda</span>
-                                }
+
+                            <td class="text-center pe-4">
+                                @* ATUALIZADO COM PONTINHOS *@
+                                <span class="badge rounded-pill px-3 py-2 @GetStatusColor(v.EstadoEncomenda)">
+                                    @(v.EstadoEncomenda == "Pago" ? "A Preparar Expedição..." : v.EstadoEncomenda)
+                                </span>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+        <div class="text-muted small mt-2 text-end">
+            A mostrar @vendasFiltradas.Count de @vendas.Count registos
+        </div>
     }
 </div>
 
 @code {
     private List<VendaFornecedorDTO> vendas = new();
+    private List<VendaFornecedorDTO> vendasFiltradas = new();
     private bool carregando = true;
+
+    // Filtros
+    private string filtroProduto = "";
+    private string filtroEstado = "";
+    private string filtroDataInicioTexto = "";
+    private string filtroDataFimTexto = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,14 +165,95 @@
         try
         {
             vendas = await FornecedorService.GetMinhasVendas() ?? new List<VendaFornecedorDTO>();
+            vendas = vendas.OrderByDescending(v => v.DataVenda).ToList();
+            vendasFiltradas = vendas;
         }
         catch (Exception)
         {
             vendas = new List<VendaFornecedorDTO>();
+            vendasFiltradas = new List<VendaFornecedorDTO>();
         }
         finally
         {
             carregando = false;
         }
+    }
+
+    private void AplicarFiltros()
+    {
+        var temp = vendas.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(filtroProduto))
+        {
+            temp = temp.Where(v => v.NomeProduto != null &&
+                                   v.NomeProduto.Contains(filtroProduto, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrEmpty(filtroEstado))
+        {
+            temp = temp.Where(v => v.EstadoEncomenda.Equals(filtroEstado, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtroDataInicioTexto) &&
+            DateTime.TryParseExact(filtroDataInicioTexto, "dd/MM/yyyy", null, DateTimeStyles.None, out DateTime dataIni))
+        {
+            temp = temp.Where(v => v.DataVenda.Date >= dataIni.Date);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtroDataFimTexto) &&
+            DateTime.TryParseExact(filtroDataFimTexto, "dd/MM/yyyy", null, DateTimeStyles.None, out DateTime dataFim))
+        {
+            temp = temp.Where(v => v.DataVenda.Date <= dataFim.Date);
+        }
+
+        vendasFiltradas = temp.ToList();
+    }
+
+    private void AoDigitarDataInicio(ChangeEventArgs e)
+    {
+        filtroDataInicioTexto = AplicarMascara(e.Value?.ToString() ?? "");
+    }
+
+    private void AoDigitarDataFim(ChangeEventArgs e)
+    {
+        filtroDataFimTexto = AplicarMascara(e.Value?.ToString() ?? "");
+    }
+
+    private string AplicarMascara(string valor)
+    {
+        string numeros = new string(valor.Where(char.IsDigit).ToArray());
+
+        if (numeros.Length > 8)
+            numeros = numeros.Substring(0, 8);
+
+        if (numeros.Length > 4)
+            return $"{numeros.Substring(0, 2)}/{numeros.Substring(2, 2)}/{numeros.Substring(4)}";
+        if (numeros.Length > 2)
+            return $"{numeros.Substring(0, 2)}/{numeros.Substring(2)}";
+
+        return numeros;
+    }
+
+    private void LimparFiltros()
+    {
+        filtroProduto = "";
+        filtroEstado = "";
+        filtroDataInicioTexto = "";
+        filtroDataFimTexto = "";
+        vendasFiltradas = vendas;
+    }
+
+    private string GetStatusColor(string estado)
+    {
+        return estado switch
+        {
+            "Pendente" => "bg-warning text-dark",
+            "Pago" => "bg-info text-dark",
+            "Enviado" => "bg-primary",
+            "Entregue" => "bg-success",
+            "Concluido" => "bg-dark text-white",
+            "Cancelada" => "bg-danger",
+            _ => "bg-secondary"
+        };
     }
 }

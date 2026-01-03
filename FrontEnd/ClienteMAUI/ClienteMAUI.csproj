@@ -67,7 +67,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\RCLAPI\RCLAPI.csproj" />
-      <ProjectReference Include="..\RCLCompras\RCLCompras.csproj" />
       <ProjectReference Include="..\RCLComum\RCLComum.csproj" />
       <ProjectReference Include="..\RCLImages\RCLImages.csproj" />
       <ProjectReference Include="..\RCLProdutos\RCLProdutos.csproj" />
