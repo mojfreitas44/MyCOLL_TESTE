@@ -32,14 +32,40 @@ namespace RCLAPI.Services
         public async Task<bool> CriarProduto(ProdutoCreateDTO dto)
         {
             var response = await _httpClient.PostAsJsonAsync("api/FornecedorProdutos", dto);
-            return response.IsSuccessStatusCode;
-        }
 
+            if (!response.IsSuccessStatusCode)
+            {
+                var erro = await response.Content.ReadAsStringAsync();
+                var statusCode = (int)response.StatusCode; // Obtém o código (ex: 400, 500)
+
+                // Se a mensagem vier vazia, usamos o status code para dar uma pista
+                if (string.IsNullOrWhiteSpace(erro))
+                {
+                    throw new Exception($"Erro API ({statusCode}): {response.ReasonPhrase}");
+                }
+
+                throw new Exception($"Erro API ({statusCode}): {erro}");
+            }
+            return true;
+        }
         // 3. Editar Produto
         public async Task<bool> EditarProduto(int id, ProdutoCreateDTO dto)
         {
             var response = await _httpClient.PutAsJsonAsync($"api/FornecedorProdutos/{id}", dto);
-            return response.IsSuccessStatusCode;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var erro = await response.Content.ReadAsStringAsync();
+                var statusCode = (int)response.StatusCode;
+
+                if (string.IsNullOrWhiteSpace(erro))
+                {
+                    throw new Exception($"Erro API ({statusCode}): {response.ReasonPhrase}");
+                }
+
+                throw new Exception($"Erro API ({statusCode}): {erro}");
+            }
+            return true;
         }
 
         // 4. Apagar Produto

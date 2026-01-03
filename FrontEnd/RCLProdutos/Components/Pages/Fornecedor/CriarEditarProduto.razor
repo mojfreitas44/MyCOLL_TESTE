@@ -38,10 +38,8 @@
             }
             else
             {
-                @* O EditForm trata de tudo. Se CategoriaId for 0, o Range falha e o OnValidSubmit NÃO corre. *@
-                <EditForm Model="produto" OnValidSubmit="SalvarProduto">
+                <EditForm EditContext="editContext" OnSubmit="HandleSubmit" novalidate>
                     <DataAnnotationsValidator />
-                    @* Este ValidationSummary mostra a lista de erros no topo *@
                     <ValidationSummary class="alert alert-danger mb-3" />
 
                     <div class="row">
@@ -127,9 +125,7 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Categoria *</label>
 
-                                @* O InputSelect verifica o [Range] no DTO. Se for 0, fica vermelho. *@
                                 <InputSelect class="form-select" @bind-Value="produto.CategoriaId">
-                                    @* Valor 0 para a opção padrão, que será inválido pelo Range(1,...) *@
                                     <option value="0" selected>-- Selecione uma Categoria --</option>
                                     @foreach (var cat in categorias)
                                     {
@@ -137,7 +133,6 @@
                                     }
                                 </InputSelect>
 
-                                @* A mensagem "A categoria é obrigatória" aparece aqui *@
                                 <ValidationMessage For="@(() => produto.CategoriaId)" class="text-danger small" />
                             </div>
                         </div>
@@ -156,7 +151,7 @@
                                                 style="width: 30px; height: 30px; padding: 0; line-height: 1; border-radius: 4px;"
                                                 @onclick="RemoverImagemSelecionada"
                                                 title="Remover imagem">
-                                            <i class="bi bi-x-lg"></i>
+                                            <i class="bi bi-x-lg"></i>X
                                         </button>
                                     </div>
                                 }
@@ -200,17 +195,22 @@
 
     private ProdutoCreateDTO produto = new() { Condicao = "Usado", Stock = 1 };
     private List<CategoriaDTO> categorias = new();
-
     private string? previewImagem;
     private int stockMinimo = 1;
-
     private bool carregando = true;
+
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
 
     protected override async Task OnInitializedAsync()
     {
         carregando = true;
         try
         {
+            // Inicializa o contexto
+            editContext = new EditContext(produto);
+            messageStore = new ValidationMessageStore(editContext);
+
             categorias = await CategoriasService.GetCategorias() ?? new List<CategoriaDTO>();
 
             if (Id.HasValue)
@@ -231,6 +231,11 @@
                         Condicao = string.IsNullOrEmpty(p.Condicao) ? "Usado" : p.Condicao,
                         CategoriaId = p.CategoriaId
                     };
+
+                    // Recriar contexto com os dados carregados
+                    editContext = new EditContext(produto);
+                    messageStore = new ValidationMessageStore(editContext);
+
                     if (!string.IsNullOrEmpty(p.ImagemSrc))
                     {
                         previewImagem = p.ImagemSrc;
@@ -255,6 +260,64 @@
         finally
         {
             carregando = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        messageStore?.Clear();
+
+        // Se editContext for nulo aqui, algo muito grave aconteceu no ciclo de vida do Blazor,
+        // mas o '!' remove o aviso do compilador porque sabemos que no OnInitialized ele foi criado.
+        if (produto.CategoriaId <= 0)
+        {
+            // CORREÇÃO AQUI: Adicionado '!' antes de .Field
+            messageStore?.Add(editContext!.Field(nameof(produto.CategoriaId)), "A categoria é obrigatória");
+        }
+
+        // CORREÇÃO AQUI: Adicionado '!' antes de .Validate
+        if (editContext!.Validate())
+        {
+            await SalvarProduto();
+        }
+    }
+
+    private async Task SalvarProduto()
+    {
+        // 1. Validação de Regra de Negócio (Stock não pode descer abaixo do mínimo)
+        if (produto.Stock < stockMinimo)
+        {
+            string msg = Id.HasValue
+                ? $"Não pode reduzir o stock! O valor mínimo permitido é {stockMinimo}."
+                : "O stock inicial tem de ser pelo menos 1.";
+
+            await JS.InvokeVoidAsync("alert", msg);
+            return;
+        }
+
+        // 2. Tentar Guardar (Criar ou Editar)
+        try
+        {
+            // Se a API rejeitar (ex: stock inválido, categoria 0), o Serviço vai lançar um erro
+            // e o código salta imediatamente para o bloco 'catch' abaixo.
+            if (Id.HasValue)
+            {
+                await FornecedorService.EditarProduto(Id.Value, produto);
+            }
+            else
+            {
+                await FornecedorService.CriarProduto(produto);
+            }
+
+            // Se chegou aqui, é porque correu tudo bem
+            await JS.InvokeVoidAsync("alert", "Produto guardado com sucesso!");
+            Nav.NavigateTo("fornecedor/produtos");
+        }
+        catch (Exception ex)
+        {
+            // 3. Captura o erro EXATO que veio da API ou do Serviço
+            // Vai aparecer algo como: "Erro API: A categoria é obrigatória"
+            await JS.InvokeVoidAsync("alert", $"Não foi possível guardar: {ex.Message}");
         }
     }
 
@@ -283,38 +346,5 @@
         produto.ImagemBase64 = null;
         produto.RemoverImagem = true;
         previewImagem = null;
-    }
-
-    private async Task SalvarProduto()
-    {
-        // REMOVIDO: A validação manual da categoria.
-        // Agora confiamos no [Range] do DTO que impede este método de correr se CategoriaId for 0.
-
-        // Validação de Stock (Regra de Negócio extra)
-        if (produto.Stock < stockMinimo)
-        {
-            string msg = Id.HasValue
-                ? $"Não pode reduzir o stock! O valor mínimo permitido é {stockMinimo}."
-                : "O stock inicial tem de ser pelo menos 1.";
-
-            await JS.InvokeVoidAsync("alert", msg);
-            return;
-        }
-
-        bool sucesso;
-        if (Id.HasValue)
-            sucesso = await FornecedorService.EditarProduto(Id.Value, produto);
-        else
-            sucesso = await FornecedorService.CriarProduto(produto);
-
-        if (sucesso)
-        {
-            await JS.InvokeVoidAsync("alert", "Produto guardado com sucesso!");
-            Nav.NavigateTo("fornecedor/produtos");
-        }
-        else
-        {
-            await JS.InvokeVoidAsync("alert", "Erro ao guardar. Verifique os dados.");
-        }
     }
 }

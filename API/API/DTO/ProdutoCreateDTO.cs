@@ -19,7 +19,7 @@ namespace API.DTO
         [Required]
         public string Condicao { get; set; } = "Usado"; // Novo ou Usado
 
-        [Range(0, int.MaxValue, ErrorMessage = "A categoria é obrigatória")]
+        [Range(1, int.MaxValue, ErrorMessage = "A categoria é obrigatória")]
         public int CategoriaId { get; set; }
         public string? ImagemBase64 { get; set; }
         public bool RemoverImagem { get; set; } = false;
