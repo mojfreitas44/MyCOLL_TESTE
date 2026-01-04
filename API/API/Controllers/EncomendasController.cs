@@ -25,8 +25,6 @@ namespace API.Controllers
 
         // 1. CRIAR ENCOMENDA
         [HttpPost]
-        // Se tiveres problemas com roles no checkout, podes remover esta linha também,
-        // mas no checkout convém manter se possível.
         [Authorize(Roles = "Cliente")]
         public async Task<ActionResult<EncomendaDTO>> Checkout([FromBody] CheckoutDto dto)
         {
@@ -143,7 +141,7 @@ namespace API.Controllers
             return Ok(dto);
         }
 
-        // 4. CONFIRMAR RECEÇÃO (CORRIGIDO)
+        // 4. CONFIRMAR RECEÇÃO 
         [HttpPatch("{id}/confirmar-entrega")]
         public async Task<IActionResult> ConfirmarEntrega(int id)
         {

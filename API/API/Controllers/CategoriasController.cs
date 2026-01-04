@@ -20,8 +20,6 @@ namespace API.Controllers
         }
 
         // GET /api/Categorias
-        // GET /api/Categorias?parentId=5
-        // GET /api/Categorias?tipo=Moedas
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CategoriaDTO>>> Get(
             [FromQuery] int? parentId,
@@ -60,7 +58,7 @@ namespace API.Controllers
             }
 
             // 4. Filtro por Pai
-            // Se o parentId foi definido (diretamente ou via 'tipo'), filtramos pelos FILHOS
+            // Se o parentId foi definido (diretamente ou via 'tipo'), filtramos pelos filhos dessa categoria
             if (parentId.HasValue)
             {
                 q = q.Where(c => c.CategoriaPaiId == parentId.Value);

@@ -7,14 +7,12 @@ namespace RCLAPI.DTO
         public int Id { get; set; }
         public string Nome { get; set; } = string.Empty;
         public string Descricao { get; set; } = string.Empty;
-
-        // --- CORREÇÃO: O nome agora é IGUAL à API ---
         public decimal PrecoVenda { get; set; }
 
         public bool ParaVenda { get; set; }
         public string Estado { get; set; } = string.Empty;
         public int Stock { get; set; }
-        public int CategoriaId { get; set; } //Testando
+        public int CategoriaId { get; set; } 
         public string? CategoriaNome { get; set; }
         public string? FornecedorNome { get; set; }
         public string Condicao { get; set; } = string.Empty;

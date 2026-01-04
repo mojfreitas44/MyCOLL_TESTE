@@ -184,7 +184,7 @@
         catch { }
     }
 
-    private bool ValidarDataExpiracao(string? validade) // <--- Adicionado o ? aqui
+    private bool ValidarDataExpiracao(string? validade) // <--- Adicionado o ? 
     {
         // 1. Se for nulo ou vazio, é inválido logo à partida
         if (string.IsNullOrWhiteSpace(validade)) return false;
@@ -218,7 +218,7 @@
     {
         msgErro = "";
 
-        // Validar manualmente a data (Regex só valida formato)
+        // Validar manualmente a data
         if (!ValidarDataExpiracao(checkoutModel.Validade))
         {
             msgErro = "O cartão está expirado ou a data é inválida.";

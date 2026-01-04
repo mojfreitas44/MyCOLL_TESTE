@@ -38,7 +38,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // CORREÇÃO 2: O método no serviço chama-se GetProdutos()
         produtos = await ProdutosService.GetProdutos();
     }
 }

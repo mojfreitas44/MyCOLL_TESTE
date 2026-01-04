@@ -11,14 +11,13 @@ namespace API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Fornecedor")] // 🔒 Só Fornecedores entram aqui!
+    [Authorize(Roles = "Fornecedor")] 
     public class FornecedorProdutosController : ControllerBase
     {
         private readonly IProdutoRepository _repo;
-        private readonly IEncomendaRepository _encomendaRepo; // <--- NOVO: Para ver as vendas
+        private readonly IEncomendaRepository _encomendaRepo; 
         private readonly UserManager<ApplicationUser> _userManager;
 
-        // Atualizámos o construtor para receber o IEncomendaRepository
         public FornecedorProdutosController(
             IProdutoRepository repo,
             IEncomendaRepository encomendaRepo,
@@ -152,7 +151,7 @@ namespace API.Controllers
             return NoContent();
         }
 
-        // 5. HISTÓRICO DE VENDAS (NOVO!) 💰
+        // 5. HISTÓRICO DE VENDAS 
         // GET: api/FornecedorProdutos/vendas
         [HttpGet("vendas")]
         public async Task<ActionResult<IEnumerable<VendaFornecedorDTO>>> GetMinhasVendas()

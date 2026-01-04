@@ -268,14 +268,14 @@
         messageStore?.Clear();
 
         // Se editContext for nulo aqui, algo muito grave aconteceu no ciclo de vida do Blazor,
-        // mas o '!' remove o aviso do compilador porque sabemos que no OnInitialized ele foi criado.
+        // o '!' remove o aviso do compilador porque sabemos que no OnInitialized ele foi criado.
         if (produto.CategoriaId <= 0)
         {
-            // CORREÇÃO AQUI: Adicionado '!' antes de .Field
+            // '!' antes de .Field
             messageStore?.Add(editContext!.Field(nameof(produto.CategoriaId)), "A categoria é obrigatória");
         }
 
-        // CORREÇÃO AQUI: Adicionado '!' antes de .Validate
+        // '!' antes de .Validate
         if (editContext!.Validate())
         {
             await SalvarProduto();
@@ -315,7 +315,7 @@
         }
         catch (Exception ex)
         {
-            // 3. Captura o erro EXATO que veio da API ou do Serviço
+            // 3. Captura o erro exato que veio da API ou do Serviço
             // Vai aparecer algo como: "Erro API: A categoria é obrigatória"
             await JS.InvokeVoidAsync("alert", $"Não foi possível guardar: {ex.Message}");
         }

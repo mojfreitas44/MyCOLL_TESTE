@@ -9,7 +9,7 @@ namespace API.Repositories
         Task<Produto?> GetByIdAsync(int id);
         Task<Produto?> GetProdutoDestaqueAsync();
         // Escrita (Fornecedor)
-        Task<IEnumerable<Produto>> GetMeusProdutosAsync(string fornecedorId); // Só os meus
+        Task<IEnumerable<Produto>> GetMeusProdutosAsync(string fornecedorId); 
         Task<Produto> CriarProdutoAsync(Produto produto);
         Task AtualizarProdutoAsync(Produto produto);
         Task ApagarProdutoAsync(int id);

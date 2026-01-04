@@ -26,7 +26,7 @@ namespace API.Controllers
         {
             var produtos = await _produtoRepository.GetAllAsync(pesquisa, categoriaId);
 
-            // Vamos buscar os IDs de todos os Admins e Funcionários para verificar rapidamente
+            // Vamos buscar os IDs de todos os Admins e Funcionários para verificar os produtos oficiais
             var admins = await _userManager.GetUsersInRoleAsync("Administrador");
             var funcionarios = await _userManager.GetUsersInRoleAsync("Funcionario");
 

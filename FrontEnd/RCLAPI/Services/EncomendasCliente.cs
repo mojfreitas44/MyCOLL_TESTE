@@ -58,7 +58,6 @@ namespace RCLAPI.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // Opcional: Podes meter um breakpoint aqui para veres o 'ReasonPhrase'
                     var erro = await response.Content.ReadAsStringAsync();
                     Console.WriteLine($"ERRO API: {response.StatusCode} - {erro}");
                 }

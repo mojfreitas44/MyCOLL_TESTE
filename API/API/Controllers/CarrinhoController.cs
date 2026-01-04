@@ -1,7 +1,7 @@
 ﻿using API.DTO;
 using API.Entities;
 using API.Repositories;
-using API.Data; // Para aceder ao ApplicationUser
+using API.Data; 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

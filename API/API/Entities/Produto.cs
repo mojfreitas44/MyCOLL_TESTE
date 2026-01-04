@@ -12,7 +12,6 @@ namespace API.Entities
         public string Nome { get; set; } = string.Empty;
         public string Descricao { get; set; } = string.Empty;
 
-        // --- CAMPOS QUE FALTAVAM ---
         [Column(TypeName = "decimal(18, 2)")]
         public decimal PrecoBase { get; set; } // Preço de Custo (Obrigatório na BD)
 

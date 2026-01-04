@@ -129,7 +129,6 @@
     protected override async Task OnInitializedAsync()
     {
         await CarregarCarrinho();
-        // Correção: Usar CarrinhoSvc em vez de Carrinho
         CarrinhoSvc.OnChange += StateHasChangedWrapper;
     }
 
@@ -141,7 +140,6 @@
 
     private async Task CarregarCarrinho()
     {
-        // Correção: Usar CarrinhoSvc
         itens = await CarrinhoSvc.GetItens();
         precoTotal = await CarrinhoSvc.GetPrecoTotal();
     }

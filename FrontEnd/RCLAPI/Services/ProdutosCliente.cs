@@ -12,12 +12,11 @@ namespace RCLAPI.Services
         public ProdutosCliente(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            // Isto permite ler "paraVenda" ou "ParaVenda" sem problemas
+            // ler "paraVenda" ou "ParaVenda" 
             _options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         }
 
-        // No ficheiro FrontEnd/RCLAPI/Services/ProdutosCliente.cs
-
+        // GetProdutos com filtros opcionais 
         public async Task<List<ProdutoDTO>> GetProdutos(string? pesquisa = null, int? categoriaId = null)
         {
             try
@@ -41,9 +40,7 @@ namespace RCLAPI.Services
             }
         }
 
-        // ... manter o resto (GetProduto, GetProdutoDestaque) igual ...
-        // No ficheiro: FrontEnd/RCLAPI/Services/ProdutosCliente.cs
-
+        // GetProduto por Id
         public async Task<ProdutoDTO?> GetProduto(int id)
         {
             try

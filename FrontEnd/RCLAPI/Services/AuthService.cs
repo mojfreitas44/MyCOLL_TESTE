@@ -108,7 +108,6 @@ namespace RCLAPI.Services
             _httpClient.DefaultRequestHeaders.Authorization = null;
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
 
-            // Opcional: Redirecionar para home ou login após logout
             // _navigationManager.NavigateTo("login"); 
         }
 

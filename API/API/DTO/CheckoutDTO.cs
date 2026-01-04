@@ -11,7 +11,7 @@ namespace API.DTO
         public string MetodoPagamento { get; set; } = string.Empty;
 
         [Required]
-        public int ModoEntregaId { get; set; }  // Ex: 2 (CTT)
+        public int ModoEntregaId { get; set; }  
 
         public List<ItemCarrinhoDTO> Itens { get; set; } = new();
 

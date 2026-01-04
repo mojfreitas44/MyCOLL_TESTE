@@ -163,7 +163,6 @@
         var user = authState.User;
         isFornecedor = user.IsInRole("Fornecedor");
 
-        // --- CORREÇÃO AQUI ---
         if (user.Identity?.IsAuthenticated == true && user.IsInRole("Cliente"))
         {
             try

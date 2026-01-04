@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace API.Entities // <--- MUDANÇA IMPORTANTE
+namespace API.Entities 
 {
     public class Categoria
     {
@@ -12,7 +12,6 @@ namespace API.Entities // <--- MUDANÇA IMPORTANTE
 
         public string? Descricao { get; set; }
 
-        // --- REQUISITO SECÇÃO 7: Hierarquia para os "Frisos" ---
         [Display(Name = "Categoria Pai")]
         public int? CategoriaPaiId { get; set; }
 

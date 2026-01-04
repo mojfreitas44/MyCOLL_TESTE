@@ -11,7 +11,6 @@
         public string MetodoPagamento { get; set; } = string.Empty;
         public string MetodoEntrega { get; set; } = string.Empty;
 
-        // AQUI ESTAVA O PROBLEMA: Definimos explicitamente que é uma lista de ItemCarrinhoDTO
         public List<ItemCarrinhoDTO> Itens { get; set; } = new();
     }
 }

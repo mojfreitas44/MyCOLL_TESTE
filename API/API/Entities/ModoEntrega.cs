@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace API.Entities // <--- MUDANÇA IMPORTANTE
+namespace API.Entities 
 {
     public class ModoEntrega
     {

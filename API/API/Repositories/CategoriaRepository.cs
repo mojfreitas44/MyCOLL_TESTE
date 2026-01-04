@@ -15,7 +15,7 @@ namespace API.Repositories
 
         public async Task<IEnumerable<Categoria>> GetCategorias()
         {
-            // Incluímos as SubCategorias para carregar a hierarquia se necessário
+            // Inclui as SubCategorias para carregar a hierarquia se necessário
             return await _context.Categorias
                 .Include(c => c.SubCategorias)
                 .OrderBy(c => c.Nome)

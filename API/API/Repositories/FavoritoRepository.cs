@@ -30,7 +30,7 @@ namespace API.Repositories
                     PrecoVenda = f.Produto.PrecoVenda,
                     Imagem = f.Produto.Imagem,
                     CategoriaNome = f.Produto.Categoria != null ? f.Produto.Categoria.Nome : "",
-                    Disponibilidade = f.Produto.Estado // ou calcular "Em Stock"
+                    Disponibilidade = f.Produto.Estado // calcular "Em Stock"
                 })
                 .ToListAsync();
         }

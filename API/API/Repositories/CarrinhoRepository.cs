@@ -64,7 +64,7 @@ namespace API.Repositories
         public async Task AtualizarQuantidade(string userId, int produtoId, int quantidade)
         {
             var item = await _context.Set<CarrinhoCompras>()
-                .Include(c => c.Produto) // Importante: Carregar dados do produto!
+                .Include(c => c.Produto) // Carregar dados do produto para ver o Stock
                 .FirstOrDefaultAsync(c => c.ClienteId == userId && c.ProdutoId == produtoId);
 
             if (item != null)

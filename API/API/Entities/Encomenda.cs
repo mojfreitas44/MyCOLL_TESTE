@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using API.Data; // <--- MUDANÇA CRÍTICA: Aponta para o ApplicationUser LOCAL da API
+using API.Data; 
 
-namespace API.Entities // <--- MUDANÇA IMPORTANTE
+namespace API.Entities 
 {
     public class Encomenda
     {

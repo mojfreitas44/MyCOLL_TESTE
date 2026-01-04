@@ -170,14 +170,14 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        // 1. Redirecionar Anónimos
+        // Redirecionar Anónimos
         if (user.Identity?.IsAuthenticated != true)
         {
             Nav.NavigateTo("login");
             return;
         }
 
-        // 2. Lógica de Toggle
+        // Adicionar ou Remover Favorito
         if (isFavorito)
         {
             if (await FavoritosService.RemoverFavorito(Id)) isFavorito = false;

@@ -28,27 +28,27 @@ namespace ClienteMAUI
 
             // --- INÍCIO DAS CONFIGURAÇÕES NOVAS ---
 
-            // 1. Configurar o HttpClient com o endereço da API (Já tinhas, mas confirma)
+            // 1. Configurar o HttpClient com o endereço da API 
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(AppConfig.BaseUrl) });
 
             // 2. Registar o LocalStorage (Para guardar o Token)
             builder.Services.AddBlazoredLocalStorage();
 
-            // 3. OBRIGATÓRIO: Sistema de Autorização do Blazor
+            // 3. Sistema de Autorização do Blazor
             // (Sem isto, o <CascadingAuthenticationState> faz a app crashar)
             builder.Services.AddAuthorizationCore();
 
-            // 4. Registar o nosso Serviço de Autenticação Personalizado
+            // 4. Registar o Serviço de Autenticação Personalizado
             builder.Services.AddScoped<AuthenticationStateProvider, AuthService>();
 
-            // (Truque para poderes injetar tanto 'AuthenticationStateProvider' como 'AuthService')
+            // (Injetar tanto 'AuthenticationStateProvider' como 'AuthService')
             builder.Services.AddScoped<AuthService>(provider =>
                 (AuthService)provider.GetRequiredService<AuthenticationStateProvider>());
 
-            // 5. Registar o Serviço de Produtos (Para a página de Catálogo funcionar)
+            // 5. Registar o Serviço de Produtos
             builder.Services.AddScoped<ProdutosCliente>();
 
-            // 6. Registar o Serviço de Categorias (Para a página de Catálogo funcionar)
+            // 6. Registar o Serviço de Categorias 
             builder.Services.AddScoped<CategoriasCliente>();
 
             // 7. Registar o Serviço do Carrinho de Compras

@@ -1,5 +1,4 @@
-﻿// Localização sugerida: FrontEnd/RCLAPI/DTO/EditarPerfilModel.cs
-namespace RCLAPI.DTO
+﻿namespace RCLAPI.DTO
 {
     public class EditarPerfilModel
     {
@@ -19,7 +18,7 @@ namespace RCLAPI.DTO
         public string Pais { get; set; } = "";
     }
 
-    // Classe auxiliar para receber os dados do GET (que vêm "planos" da base de dados)
+    // Classe auxiliar para receber os dados do GET 
     public class UserPerfilResponse
     {
         public string Id { get; set; } = "";
@@ -28,7 +27,7 @@ namespace RCLAPI.DTO
         public long NIF { get; set; }
         public string Telemovel { get; set; } = "";
 
-        // Morada (vêm "planos" do ApplicationUser da API)
+        // Morada 
         public string Rua { get; set; } = "";
         public string Localidade { get; set; } = "";
         public string CodigoPostal { get; set; } = "";

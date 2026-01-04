@@ -27,8 +27,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ==============================================================================
 // 3. CONFIGURAÇÃO DO IDENTITY (COM ENDPOINTS AUTOMÁTICOS)
 // ==============================================================================
-// Voltei a colocar o "AddIdentityApiEndpoints" como pediste.
-// Isto ativa a maquinaria toda da Microsoft para /register, /login, etc.
+// ativar a maquinaria toda da Microsoft para /register, /login, etc.
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -47,8 +46,7 @@ var jwtKey = builder.Configuration["JWT:Key"];
 var jwtIssuer = builder.Configuration["JWT:Issuer"];
 var jwtAudience = builder.Configuration["JWT:Audience"];
 
-// IMPORTANTE: Aqui forçamos o sistema a usar o TEU JWT como padrão,
-// ignorando os cookies ou tokens automáticos do Identity se houver conflito.
+// Serve para configurar o esquema de autenticação JWT e definir os parâmetros de validação do token
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -126,8 +124,6 @@ using (var scope = app.Services.CreateScope())
             if (!await roleManager.RoleExistsAsync(role))
                 await roleManager.CreateAsync(new IdentityRole(role));
         }
-
-        // (Podes adicionar aqui a criação do User Admin se quiseres, como tinhas antes)
     }
     catch (Exception ex)
     {

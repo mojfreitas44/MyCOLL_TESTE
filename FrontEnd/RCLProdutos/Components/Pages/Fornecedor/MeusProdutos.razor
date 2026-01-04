@@ -141,7 +141,6 @@
 </div>
 
 @code {
-    // Inicializamos a lista para evitar avisos de null
     private List<ProdutoDTO> produtos = new();
     private bool carregando = true;
 
@@ -181,7 +180,6 @@
 
     private async Task ApagarProduto(int id, string nome)
     {
-        // CORREÇÃO PRINCIPAL: Usamos JS.InvokeAsync em vez de Application.Current
         bool confirmado = await JS.InvokeAsync<bool>("confirm", $"Tem a certeza que deseja apagar o produto '{nome}'?");
 
         if (confirmado)
@@ -191,9 +189,6 @@
             {
                 // Recarrega a lista após apagar
                 await CarregarProdutos();
-
-                // Opcional: Mostrar feedback simples
-                // await JS.InvokeVoidAsync("alert", "Produto apagado com sucesso.");
             }
             else
             {
