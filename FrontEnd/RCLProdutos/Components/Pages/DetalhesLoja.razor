@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 @inject FavoritosService FavoritosService
+@inject CarrinhoService CarrinhoService
 
 <PageTitle>@tituloPagina</PageTitle>
 
@@ -188,6 +189,13 @@
         }
     }
 
-    private void VoltarLoja() { Nav.NavigateTo("loja"); }
-    private void AdicionarAoCarrinho() { Nav.NavigateTo("carrinho"); }
+    private async Task AdicionarAoCarrinho()
+    {
+        if (produto != null)
+        {
+            await CarrinhoService.AdicionarAoCarrinho(produto);
+            //Nav.NavigateTo("carrinho"); // Opcional 
+        }
+    }
+     private void VoltarLoja() { Nav.NavigateTo("loja"); }
 }
