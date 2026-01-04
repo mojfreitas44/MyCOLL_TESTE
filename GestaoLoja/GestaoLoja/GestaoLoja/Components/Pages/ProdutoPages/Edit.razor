@@ -80,7 +80,6 @@ else
 
                 <div class="mb-3">
                     <label for="categoria" class="form-label">Categoria</label>
-                    @* Adicionamos TValue="int" para garantir que ele entende que o ID é um número *@
                     <InputSelect id="categoria" @bind-Value="Produto.CategoriaId" TValue="int" class="form-select">
                         @if (categorias != null)
                         {
@@ -169,7 +168,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA: PORTEIRO ---
+        // --- SEGURANÇA ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -189,7 +188,6 @@ else
         }
     }
 
-    // --- NOVA FUNÇÃO DE REMOVER ---
     private void RemoverImagem()
     {
         if (Produto != null)
@@ -199,7 +197,6 @@ else
             inputKey = Guid.NewGuid(); // Reseta a barra visualmente
         }
     }
-    // ------------------------------
 
     private async Task CarregarImagem(InputFileChangeEventArgs e)
     {
@@ -257,7 +254,7 @@ else
             produtoDb.Estado = "Pendente";
         }
 
-        // 3. ATUALIZAR TODOS OS CAMPOS MANUALMENTE (Para não haver falhas)
+        // 3. ATUALIZAR TODOS OS CAMPOS MANUALMENTE 
         produtoDb.Nome = Produto!.Nome;
         produtoDb.Descricao = Produto.Descricao;
         produtoDb.PrecoBase = Produto.PrecoBase;

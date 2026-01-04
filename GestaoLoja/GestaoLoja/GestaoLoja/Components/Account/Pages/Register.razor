@@ -70,7 +70,7 @@
         var emailStore = GetEmailStore();
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
-        // --- Regra de Negócio: Entra como Pendente ---
+        // --- Entra como Pendente ---
         user.Estado = "Pendente";
 
         var result = await UserManager.CreateAsync(user, Input.Password);

@@ -68,7 +68,6 @@ else
                         <small class="text-muted">@(p.Categoria?.Nome ?? "Sem Categoria")</small>
                     </td>
 
-                    @* --- AQUI ESTÁ A CORREÇÃO DA LÓGICA --- *@
                     <td>
                         @if (string.IsNullOrEmpty(p.Fornecedor?.Nome))
                         {
@@ -80,7 +79,6 @@ else
                             <span class="badge bg-info text-dark">@p.Fornecedor.Nome</span>
                         }
                     </td>
-                    @* -------------------------------------- *@
 
                     <td>@p.PrecoBase.ToString("C")</td>
                     <td style="width:120px">

@@ -84,7 +84,7 @@ else
             return;
         }
 
-        // VERIFICAÇÃO PRÉVIA: Tem produtos?
+        // Verifica previamente se tem produtos
         var temProdutos = await context.Produtos.AnyAsync(p => p.CategoriaId == Id);
         var temSubcategorias = await context.Categorias.AnyAsync(c => c.CategoriaPaiId == Id);
 

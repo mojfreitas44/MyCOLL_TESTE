@@ -1,7 +1,7 @@
-﻿using GestaoLoja.Data; // <--- Namespace da Loja
+﻿using GestaoLoja.Data; 
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace GestaoLoja.Entities // <--- Namespace da Loja
+namespace GestaoLoja.Entities 
 {
     public class CarrinhoCompras
     {

@@ -93,7 +93,7 @@
 
         if (user != null)
         {
-            // 2. VERIFICAÇÃO DE SEGURANÇA: Bloquear Clientes e Fornecedores
+            // 2.Bloquear Clientes e Fornecedores
             // Se o utilizador for Cliente ou Fornecedor, mostra erro e não deixa entrar.
             var isCliente = await UserManager.IsInRoleAsync(user, "Cliente");
             var isFornecedor = await UserManager.IsInRoleAsync(user, "Fornecedor");

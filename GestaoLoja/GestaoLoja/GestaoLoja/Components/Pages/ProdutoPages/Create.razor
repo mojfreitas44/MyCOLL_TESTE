@@ -100,7 +100,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // --- SEGURANÇA: PORTEIRO ---
+        // --- SEGURANÇA ---
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
         if (userDb == null || userDb.Estado != "Ativo")
@@ -121,7 +121,7 @@
             var ficheiro = e.File;
             if (ficheiro != null)
             {
-                var maxTamanho = 5 * 1024 * 1024; // Aumentei para 5MB para prevenir erros comuns
+                var maxTamanho = 5 * 1024 * 1024;
                 using var stream = ficheiro.OpenReadStream(maxTamanho);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);

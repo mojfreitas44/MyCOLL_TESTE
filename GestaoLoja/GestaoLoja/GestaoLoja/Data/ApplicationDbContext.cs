@@ -17,12 +17,11 @@ namespace GestaoLoja.Data
 
         public DbSet<Favorito> Favoritos { get; set; }
 
-
+        // Configurações adicionais do modelo
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // Exemplo de configuração adicional se necessário (ex: definir precisão decimal se o atributo não funcionar)
             builder.Entity<Produto>()
                 .Property(p => p.PrecoBase)
                 .HasColumnType("decimal(18,2)");

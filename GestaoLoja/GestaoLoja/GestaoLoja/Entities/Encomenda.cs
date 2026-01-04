@@ -13,7 +13,7 @@ namespace GestaoLoja.Entities
         [Column(TypeName = "decimal(18, 2)")]
         public decimal ValorTotal { get; set; }
 
-        public string Estado { get; set; } = "Pendente"; // Pendente, Pago, Enviado, Concluido
+        public string Estado { get; set; } = "Pendente"; 
 
         // Dados de Envio (Cópia do momento da compra)
         public string? MoradaEnvio { get; set; }

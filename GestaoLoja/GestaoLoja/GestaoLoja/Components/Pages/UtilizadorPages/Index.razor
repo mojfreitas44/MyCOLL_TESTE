@@ -176,7 +176,7 @@ else
         // Verifica se é Administrador (usando a role nova)
         euSouAdmin = await UserManager.IsInRoleAsync(userDb, "Administrador");
 
-        // --- CORREÇÃO AQUI: Filtramos para ignorar a role "Admin" antiga ---
+        // Carrega todas as roles disponíveis, exceto a antiga "Admin"
         todasRoles = await RoleManager.Roles
                                       .Select(r => r.Name!)
                                       .Where(r => r != "Admin") // Esconde o lixo antigo
@@ -245,10 +245,8 @@ else
     {
         if (string.IsNullOrEmpty(novaRole)) return;
 
-        // Proteção do Super Admin (ajusta o email se usares outro)
         if (user.Email == "admin@loja.pt" || user.Email == "admin@mycoll.pt") return;
 
-        // Regra: Só Admin pode promover a Admin/Funcionario
         if (!euSouAdmin && (novaRole == "Administrador" || novaRole == "Funcionario")) return;
 
         var rolesAtuais = await UserManager.GetRolesAsync(user);

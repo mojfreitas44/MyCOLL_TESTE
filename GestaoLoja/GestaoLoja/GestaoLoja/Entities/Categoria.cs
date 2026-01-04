@@ -12,7 +12,7 @@ namespace GestaoLoja.Entities
 
         public string? Descricao { get; set; }
 
-        // --- REQUISITO SECÇÃO 7: Hierarquia para os "Frisos" ---
+        // --- Hierarquia para as categorias ---
         // Permite: Moedas (Pai) -> Portugal (Filho) -> D.Dinis (Neto)
         [Display(Name = "Categoria Pai")]
         public int? CategoriaPaiId { get; set; }

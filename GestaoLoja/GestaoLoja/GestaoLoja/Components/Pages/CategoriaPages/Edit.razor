@@ -45,7 +45,6 @@ else
 
                 <div class="mb-3">
                     <label class="form-label">Categoria Pai</label>
-                    @* O segredo para int? funcionar bem é tratar o valor vazio como null *@
                     <InputSelect @bind-Value="Categoria.CategoriaPaiId" class="form-select">
                         <option value="">-- Nenhuma (Topo) --</option>
                         @foreach (var cat in listaCategorias)
@@ -101,7 +100,7 @@ else
     {
         using var context = DbFactory.CreateDbContext();
 
-        // 1. Buscar a versão ORIGINAL da base de dados
+        // 1. Buscar a versão original da base de dados
         var categoriaDb = await context.Categorias.FindAsync(Categoria!.Id);
 
         if (categoriaDb != null)
@@ -109,7 +108,7 @@ else
             // 2. Copiar os valores novos para o objeto da BD
             categoriaDb.Nome = Categoria.Nome;
             categoriaDb.Descricao = Categoria.Descricao;
-            categoriaDb.CategoriaPaiId = Categoria.CategoriaPaiId; // <--- AQUI É QUE A MAGIA ACONTECE
+            categoriaDb.CategoriaPaiId = Categoria.CategoriaPaiId; 
 
             // 3. Gravar
             await context.SaveChangesAsync();

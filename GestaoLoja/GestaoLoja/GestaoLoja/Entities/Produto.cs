@@ -14,11 +14,11 @@ namespace GestaoLoja.Entities
         [Required]
         public string Descricao { get; set; } = string.Empty;
 
-        // --- REQUISITO: Imagem na BD ---
+        // --- Imagem na BD ---
         public byte[]? Imagem { get; set; }
-        public string? ImagemUrl { get; set; } // Opcional, se quiseres manter compatibilidade
+        public string? ImagemUrl { get; set; } // Opcional: URL para a imagem armazenada externamente
 
-        // --- REQUISITO SECÇÃO 7: Listagem vs Venda ---
+        // --- Listagem vs Venda ---
         [Display(Name = "Disponível para Venda?")]
         public bool ParaVenda { get; set; } = true; // Se false, aparece apenas como "Coleção"
 

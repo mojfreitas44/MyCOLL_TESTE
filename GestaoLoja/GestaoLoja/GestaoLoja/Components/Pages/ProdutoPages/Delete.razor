@@ -77,15 +77,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // Segurança (Porteiro)
+        // 1. Validação de Segurança e Estado do Utilizador
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var userDb = await UserManager.GetUserAsync(authState.User);
+
         if (userDb == null || userDb.Estado != "Ativo")
         {
             NavigationManager.NavigateTo("Account/AccessDenied");
             return;
         }
 
+        // 2. Carregamento da Entidade
         using var context = DbFactory.CreateDbContext();
         produto = await context.Produtos.FirstOrDefaultAsync(m => m.Id == Id);
 
@@ -94,12 +96,6 @@ else
             NavigationManager.NavigateTo("produtos");
             return;
         }
-
-        // VERIFICAÇÃO: O produto já foi vendido?
-        // Precisamos de ver se existe na tabela 'EncomendaItem' (que se chama 'EncomendaItem' na BD, mas o DbSet pode não estar explícito se usaste apenas navegação)
-        // Se não tiveres DbSet<EncomendaItem>, usamos a navegação inversa ou SQL cru, mas o ideal é ter o DbSet.
-        // Vamos assumir que o EF Core consegue verificar via navegação se tentarmos apagar e der erro,
-        // mas o ideal é verificar antes. Como não temos DbSet<EncomendaItem> exposto no DbContext (ainda), vamos usar try-catch.
     }
 
     private async Task ApagarProduto()
@@ -107,18 +103,21 @@ else
         using var context = DbFactory.CreateDbContext();
         try
         {
+            // 3. Remoção Física
             context.Produtos.Remove(produto!);
             await context.SaveChangesAsync();
             NavigationManager.NavigateTo("produtos");
         }
         catch (DbUpdateException)
         {
-            // Este erro ocorre se houver Encomendas a usar este produto (Foreign Key)
+            // 4. Tratamento de Restrições de Integridade Referencial (FKs)
+            // Impede a remoção se o produto estiver associado a encomendas históricas
             mensagemErro = "Este produto não pode ser apagado porque já faz parte de encomendas passadas. Sugestão: Mude o estado para 'Inativo'.";
             podeApagar = false; // Bloqueia o botão
         }
         catch (Exception ex)
         {
+            // 5. Tratamento de Erros Genéricos
             mensagemErro = "Erro inesperado: " + ex.Message;
         }
     }

@@ -38,7 +38,7 @@
                 <option value="Enviado">Enviado</option>
                 <option value="Entregue">Entregue (A fechar)</option>
                 <option value="Concluido">Concluído</option>
-                <option value="Cancelada">Cancelada</option> @* ADICIONADO *@
+                <option value="Cancelada">Cancelada</option>
             </select>
         </div>
         <div class="col-md-3">
@@ -88,12 +88,9 @@ else
                             Detalhes
                         </a>
 
-                        @* LÓGICA RIGOROSA DE ESTADOS *@
                         @if (enc.Estado == "Pendente")
                         {
                             <button class="btn btn-sm btn-success ms-1" @onclick='() => MudarEstado(enc, "Pago")'>Marcar Pago</button>
-
-                            @* --- NOVO BOTÃO RECUSAR --- *@
                             <button class="btn btn-sm btn-outline-danger ms-1" title="Cancelar e Repor Stock" @onclick='() => RecusarEncomenda(enc.Id)'>
                                 <i class="bi bi-x-circle"></i> Recusar
                             </button>
@@ -220,7 +217,7 @@ else
         }
     }
 
-    // --- NOVA FUNCIONALIDADE: RECUSAR ENCOMENDA ---
+    // --- RECUSAR ENCOMENDA ---
     private async Task RecusarEncomenda(int id)
     {
         // 1. Confirmação Visual
@@ -229,7 +226,7 @@ else
 
         using var context = DbFactory.CreateDbContext();
 
-        // Importante: Incluir Itens para poder aceder ao Produto e repor stock
+        // Incluir Itens para poder aceder ao Produto e repor stock
         var encomendaDb = await context.Encomendas
             .Include(e => e.Itens)
             .FirstOrDefaultAsync(e => e.Id == id);

@@ -14,9 +14,9 @@ namespace GestaoLoja.Data
 
     public static class Inicializacao
     {
-        /// <summary>
-        /// Método Principal: Garante que o sistema tem Roles e um Administrador para entrar.
-        /// </summary>
+        
+        // Principal: Garantir que o sistema tem Roles e um Administrador para entrar.
+        
         public static async Task CriaDadosIniciais(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             // 1. Criar Roles (Perfis) se não existirem
@@ -31,7 +31,6 @@ namespace GestaoLoja.Data
             }
 
             // 2. Garantir que o Administrador existe e está Ativo
-            // ATENÇÃO: Confirma se este é o email que queres usar como Super Admin
             var emailAdmin = "admin@mycoll.pt";
 
             var userAdmin = await userManager.FindByEmailAsync(emailAdmin);
@@ -65,13 +64,9 @@ namespace GestaoLoja.Data
                 await userManager.AddToRoleAsync(novoAdmin, Roles.Administrador);
             }
         }
-
-        /// <summary>
-        /// Opcional: Cria as categorias base do negócio (Moedas, Selos, etc.)
-        /// </summary>
         public static async Task SeedCategoriasPadrao(ApplicationDbContext db)
         {
-            // Se já existirem categorias, não faz nada (respeita os dados reais)
+            // Se já existirem categorias, não faz nada, respeita os dados reais
             if (await db.Categorias.AnyAsync()) return;
 
             db.Categorias.AddRange(

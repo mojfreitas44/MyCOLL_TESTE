@@ -128,7 +128,6 @@ else
                         }
                     </td>
 
-                    @* --- NOVA CÉLULA: LÓGICA DO FORNECEDOR --- *@
                     <td>
                         @if (string.IsNullOrEmpty(p.Fornecedor?.Nome))
                         {
@@ -140,7 +139,6 @@ else
                             <span class="badge bg-info text-dark">@p.Fornecedor.Nome</span>
                         }
                     </td>
-                    @* ---------------------------------------- *@
 
                     <td>@(p.Categoria?.Nome ?? "-")</td>
                     <td>
@@ -276,7 +274,7 @@ else
         using var context = DbFactory.CreateDbContext();
         var query = context.Produtos
             .Include(p => p.Categoria)
-            .Include(p => p.Fornecedor) // <--- ESTA LINHA É NOVA E OBRIGATÓRIA
+            .Include(p => p.Fornecedor) 
             .AsQueryable();
 
         // Filtro Estado

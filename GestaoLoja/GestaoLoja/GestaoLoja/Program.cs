@@ -35,19 +35,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddRoles<IdentityRole>() // IMPORTANTE: Adicionar suporte a Roles
+    .AddRoles<IdentityRole>() // Adicionar suporte a Roles
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-// Serviço para aceder ao HttpContext (útil para saber quem está logado nos componentes)
+// Serviço para aceder ao HttpContext (para saber quem está logado nos componentes)
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// --- BLOCO DE INICIALIZAÇÃO (Igual ao WebCar) ---
+// --- BLOCO DE INICIALIZAÇÃO ---
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
