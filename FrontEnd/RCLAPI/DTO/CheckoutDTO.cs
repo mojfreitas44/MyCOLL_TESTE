@@ -22,7 +22,7 @@ namespace RCLAPI.DTO
         [RegularExpression(@"^\d{16}$", ErrorMessage = "O cartão tem de ter 16 dígitos numéricos.")]
         public string? NumeroCartao { get; set; }
 
-        [RegularExpression(@"^(0[1-9]|1[0-2])\/\d{2}$", ErrorMessage = "Use o formato MM/AA (ex: 05/26).")]
+        [RegularExpression(@"^(0[1-9]|1[0-2])\/\d{2}$", ErrorMessage = "Use o formato MM/AA (ex: 05/28).")]
         public string? Validade { get; set; }
 
         [RegularExpression(@"^\d{3}$", ErrorMessage = "O CVV tem de ter 3 dígitos numéricos.")]

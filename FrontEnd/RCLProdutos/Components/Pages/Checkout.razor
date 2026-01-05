@@ -36,7 +36,7 @@
                         </div>
                     </div>
 
-                    @* --- 2. MODO DE ENTREGA (Visual Anterior) --- *@
+                    @* --- 2. MODO DE ENTREGA --- *@
                     <div class="card shadow-sm border-0 rounded-4 mb-4">
                         <div class="card-header bg-white border-0 py-3">
                             <h5 class="fw-bold text-primary m-0">Entrega</h5>
@@ -92,8 +92,15 @@
 
                                     <div class="row">
                                         <div class="col-6">
-                                            <label class="small text-muted">Validade (MM/AA)</label>
-                                            <InputText @bind-Value="checkoutModel.Validade" class="form-control" placeholder="MM/AA" maxlength="5" />
+                                            <label class="small text-muted">Validade (MM/YY)</label>
+
+                                            @* --- ALTERAÇÃO AQUI: Adicionado @oninput para formatação automática --- *@
+                                            <InputText @bind-Value="checkoutModel.Validade"
+                                                       @oninput="FormatarValidade"
+                                                       class="form-control"
+                                                       placeholder="MM/YY"
+                                                       maxlength="5" />
+
                                             <ValidationMessage For="@(() => checkoutModel.Validade)" />
                                         </div>
                                         <div class="col-6">
@@ -184,9 +191,33 @@
         catch { }
     }
 
-    private bool ValidarDataExpiracao(string? validade) // <--- Adicionado o ? 
+    // --- NOVO MÉTODO PARA MASCARA DA VALIDADE ---
+    private void FormatarValidade(ChangeEventArgs e)
     {
-        // 1. Se for nulo ou vazio, é inválido logo à partida
+        string entrada = e.Value?.ToString() ?? string.Empty;
+
+        // Mantém apenas os números
+        string numeros = new string(entrada.Where(char.IsDigit).ToArray());
+
+        if (numeros.Length >= 2)
+        {
+            // Insere a barra após o segundo dígito
+            checkoutModel.Validade = numeros.Insert(2, "/");
+        }
+        else
+        {
+            checkoutModel.Validade = numeros;
+        }
+
+        // Garante que não ultrapassa 5 caracteres (MM/AA)
+        if (checkoutModel.Validade.Length > 5)
+        {
+            checkoutModel.Validade = checkoutModel.Validade.Substring(0, 5);
+        }
+    }
+
+    private bool ValidarDataExpiracao(string? validade)
+    {
         if (string.IsNullOrWhiteSpace(validade)) return false;
 
         try
@@ -199,13 +230,9 @@
 
             if (mes < 1 || mes > 12) return false;
 
-            // Assume século 21 (20xx)
             int anoCompleto = 2000 + ano;
-
-            // Último dia do mês de validade
             var dataExpiracao = new DateTime(anoCompleto, mes, 1).AddMonths(1).AddDays(-1);
 
-            // Verifica se a data atual é anterior à expiração
             return dataExpiracao >= DateTime.Now;
         }
         catch
@@ -218,7 +245,6 @@
     {
         msgErro = "";
 
-        // Validar manualmente a data
         if (!ValidarDataExpiracao(checkoutModel.Validade))
         {
             msgErro = "O cartão está expirado ou a data é inválida.";
@@ -245,7 +271,7 @@
         if (sucesso)
         {
             await CarrinhoSvc.LimparCarrinho();
-            Nav.NavigateTo("/encomendas"); 
+            Nav.NavigateTo("/encomendas");
         }
         else
         {
