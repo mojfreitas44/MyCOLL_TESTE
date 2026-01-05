@@ -94,7 +94,6 @@
                                         <div class="col-6">
                                             <label class="small text-muted">Validade (MM/YY)</label>
 
-                                            @* --- ALTERAÇÃO AQUI: Adicionado @oninput para formatação automática --- *@
                                             <InputText @bind-Value="checkoutModel.Validade"
                                                        @oninput="FormatarValidade"
                                                        class="form-control"
@@ -191,7 +190,6 @@
         catch { }
     }
 
-    // --- NOVO MÉTODO PARA MASCARA DA VALIDADE ---
     private void FormatarValidade(ChangeEventArgs e)
     {
         string entrada = e.Value?.ToString() ?? string.Empty;
