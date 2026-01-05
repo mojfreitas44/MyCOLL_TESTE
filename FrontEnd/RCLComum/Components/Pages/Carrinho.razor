@@ -34,7 +34,7 @@
                         @foreach (var item in itens)
                         {
                             <div class="d-flex align-items-center p-3 border-bottom">
-                                @* Imagem *@
+                                @* Imagem do Produto *@
                                 <div class="flex-shrink-0 bg-light rounded-3 d-flex align-items-center justify-content-center border" style="width: 80px; height: 80px;">
                                     @if (!string.IsNullOrEmpty(item.Produto.ImagemSrc))
                                     {
@@ -54,15 +54,25 @@
                                 </div>
 
                                 @* Controlo de Quantidade *@
-                                <div class="d-flex align-items-center mx-3 bg-light rounded-pill px-2 py-1 border">
-                                    <button class="btn btn-sm btn-link text-dark text-decoration-none p-0"
-                                            @onclick="() => Decrementar(item)" disabled="@(item.Quantidade <= 1)">
-                                        <i class="bi bi-dash fw-bold"></i>
+                                <div class="d-flex align-items-center mx-3 bg-light rounded-pill px-3 py-1 border">
+                                    
+                                    @* Botão Menos *@
+                                    <button class="btn btn-link p-0 border-0 d-flex align-items-center" 
+                                            @onclick="() => Decrementar(item)" 
+                                            disabled="@(item.Quantidade <= 1)"
+                                            style="opacity: @(item.Quantidade <= 1 ? "0.5" : "1")">
+                                        <img src="_content/RCLImages/images/minus.png" style="width: 20px; height: 20px;" alt="-" />
                                     </button>
+                                    
+                                    @* Número da Quantidade *@
                                     <span class="fw-bold mx-3" style="min-width: 20px; text-align: center;">@item.Quantidade</span>
-                                    <button class="btn btn-sm btn-link text-dark text-decoration-none p-0"
-                                            @onclick="() => Incrementar(item)" disabled="@(item.Quantidade >= item.Produto.Stock)">
-                                        <i class="bi bi-plus fw-bold"></i>
+                                    
+                                    @* Botão Mais *@
+                                    <button class="btn btn-link p-0 border-0 d-flex align-items-center" 
+                                            @onclick="() => Incrementar(item)" 
+                                            disabled="@(item.Quantidade >= item.Produto.Stock)"
+                                            style="opacity: @(item.Quantidade >= item.Produto.Stock ? "0.5" : "1")">
+                                        <img src="_content/RCLImages/images/plus.png" style="width: 20px; height: 20px;" alt="+" />
                                     </button>
                                 </div>
 
@@ -94,6 +104,7 @@
                     <div class="card-body p-4">
                         <h4 class="fw-bold mb-4">Resumo</h4>
 
+                        @* Subtotal *@
                         <div class="d-flex justify-content-between mb-2">
                             @{
                                 var qtdTotal = itens.Sum(i => i.Quantidade);
@@ -101,7 +112,8 @@
                             <span class="text-muted">Subtotal (@qtdTotal @(qtdTotal == 1 ? "item" : "itens"))</span>
                             <span class="fw-bold">@precoTotal.ToString("C")</span>
                         </div>
-
+                        
+                        @* Envio Informativo *@
                         <div class="d-flex justify-content-between mb-4">
                             <span class="text-muted">Envio</span>
                             <span class="text-muted small fst-italic">Calculado no checkout</span>
@@ -113,10 +125,10 @@
                             <span class="fw-bold fs-5">Total Estimado</span>
                             <span class="fw-bold fs-3 text-success">@precoTotal.ToString("C")</span>
                         </div>
-
+                        
                         <div class="alert alert-light border small text-muted mb-4">
                             <i class="bi bi-info-circle me-1"></i>
-                            As taxas de envio serão calculados ao finalizar a compra.
+                            Taxas de envio e impostos serão calculados ao finalizar a compra.
                         </div>
 
                         <div class="d-grid">
@@ -149,8 +161,15 @@
 
     private async Task CarregarCarrinho()
     {
-        itens = await CarrinhoSvc.GetItens();
-        precoTotal = await CarrinhoSvc.GetPrecoTotal();
+        try
+        {
+            itens = await CarrinhoSvc.GetItens();
+            precoTotal = await CarrinhoSvc.GetPrecoTotal();
+        }
+        catch (Exception)
+        {
+            // Opcional: Tratar erro de carregamento
+        }
     }
 
     private async Task Incrementar(ItemCarrinho item)
@@ -161,8 +180,11 @@
 
     private async Task Decrementar(ItemCarrinho item)
     {
-        await CarrinhoSvc.DecrementarQuantidade(item.Produto.Id);
-        await CarregarCarrinho();
+        if (item.Quantidade > 1)
+        {
+            await CarrinhoSvc.DecrementarQuantidade(item.Produto.Id);
+            await CarregarCarrinho();
+        }
     }
 
     private async Task Remover(ItemCarrinho item)
@@ -179,19 +201,15 @@
 
     private async Task FinalizarCompra()
     {
-        // 1. Verificar se o utilizador está autenticado
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
         if (user.Identity != null && user.Identity.IsAuthenticated)
         {
-            // ESTÁ LOGADO -> Pode avançar para o Checkout
             Nav.NavigateTo("checkout");
         }
         else
         {
-            // NÃO ESTÁ LOGADO -> Manda para o Login
-            // Nota: O carrinho mantém-se no LocalStorage, por isso não se perde nada.
             Nav.NavigateTo("login");
         }
     }
